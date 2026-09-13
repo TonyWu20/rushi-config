@@ -185,23 +185,23 @@
           ];
         };
 
+      # Nix attrset siblings do not share scope, so the configured package
+      # (the mkRushi result) is bound in the `let` and referenced by key.
       forSystem = system:
         let
           pkgs = import nixpkgs {
             inherit system;
             overlays = [ fenix.overlays.default ];
           };
+          # The fully configured rushi: kernel + TUI + config + exts.
+          mk = rushiFlake.lib.mkRushi {
+            inherit pkgs;
+            modules = [ (configModule { inherit system; }) ];
+          };
         in
         {
-          # The fully configured rushi: kernel + TUI + config + exts.
-          default = rushiFlake.lib.mkRushi {
-            inherit pkgs;
-            modules = [ (configModule { inherit system; }) ];
-          }.package;
-          rushi = rushiFlake.lib.mkRushi {
-            inherit pkgs;
-            modules = [ (configModule { inherit system; }) ];
-          }.package;
+          default = mk.package;
+          rushi = mk.package;
           # Raw kernel binary (no user config), for `rushi setup` / dev.
           rushi-kernel = rushiFlake.packages.${system}.rushi;
           # The TUI binary on its own.
