@@ -785,11 +785,11 @@
         "nixpkgs": "nixpkgs_13"
       },
       "locked": {
-        "lastModified": 1789348410,
-        "narHash": "sha256-S1yrKly4L5baU80zDf7TRsIA1u1gZZKt6F2YyTPHHP8=",
+        "lastModified": 1789367361,
+        "narHash": "sha256-QU+m/fLnccTSavXXLam6KMN6e6boe89x4SZdNo/ev0A=",
         "ref": "refs/heads/main",
-        "rev": "46b712ed0dca0a6da14098bf1e14518422b7b0db",
-        "revCount": 206,
+        "rev": "eff2e51b20caf0322766bb8660110207336daada",
+        "revCount": 207,
         "type": "git",
         "url": "file:///home/tony/programming/rust-unix-harness"
       },
@@ -801,11 +801,11 @@
     "rushi-kernel-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1789348410,
-        "narHash": "sha256-S1yrKly4L5baU80zDf7TRsIA1u1gZZKt6F2YyTPHHP8=",
+        "lastModified": 1789367361,
+        "narHash": "sha256-QU+m/fLnccTSavXXLam6KMN6e6boe89x4SZdNo/ev0A=",
         "ref": "refs/heads/main",
-        "rev": "46b712ed0dca0a6da14098bf1e14518422b7b0db",
-        "revCount": 206,
+        "rev": "eff2e51b20caf0322766bb8660110207336daada",
+        "revCount": 207,
         "type": "git",
         "url": "file:///home/tony/programming/rust-unix-harness"
       },
@@ -842,11 +842,11 @@
         "rushi-kernel-src": "rushi-kernel-src"
       },
       "locked": {
-        "lastModified": 1789363945,
-        "narHash": "sha256-VzC5BxbVyp0uF9b5Y206ZHDhgDCE0ELAloaTMLoKWBM=",
+        "lastModified": 1789374747,
+        "narHash": "sha256-Sfu8HYXTbyAcfBoWSS9IHXFw35EIMEB1Paz/YiM0u58=",
         "ref": "refs/heads/ratatui-widget-based",
-        "rev": "c14ce580fed89a7bb631629df960079a486b0e2b",
-        "revCount": 57,
+        "rev": "60a056402b26eb8fdb0304626773dc235cc81906",
+        "revCount": 60,
         "type": "git",
         "url": "file:///home/tony/programming/rushi-tui-ratatui-widget-based"
       },
