@@ -742,8 +742,8 @@
         "nixpkgs": "nixpkgs_6"
       },
       "locked": {
-        "lastModified": 1789340113,
-        "narHash": "sha256-X9XmXLxJpGs1lL/sliT5/BXuBxyBzfqp0KtBigBsK+Q=",
+        "lastModified": 1789348410,
+        "narHash": "sha256-HMtnMEJ5bvU7Ke6fVUOoh7Z85bAlELOfwD3UWt75FqI=",
         "path": "/home/tony/programming/rust-unix-harness",
         "type": "path"
       },
@@ -758,8 +758,8 @@
         "nixpkgs": "nixpkgs_7"
       },
       "locked": {
-        "lastModified": 1789340173,
-        "narHash": "sha256-KtSv9kUy5yTSWb5vRXtUUCdlGxrTKarQqXUDShdVmoY=",
+        "lastModified": 1789346799,
+        "narHash": "sha256-6UAIj/V5KYuFLuAcU9zgGuGcdwGd0RoMV0IU6LSihUQ=",
         "path": "/home/tony/programming/rushi-exts/goal-app",
         "type": "path"
       },
