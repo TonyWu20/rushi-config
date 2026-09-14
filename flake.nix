@@ -98,11 +98,15 @@
           rushi.config.active.model = "Qwen3.8-27B-NVFP4-RTX5090-DFlash2";
 
           # [paths] — kernel-native tool paths resolve inside the package
-          # ($out/tools). External tool paths are NOT set: the ext tools
-          # are bundled into $out/tools by rushi.external_tools below.
+          # ($out/tools). The ext tool manifests are bundled into $out/tools
+          # by rushi.external_tools below; extension_tool_paths lists them so
+          # the kernel registers the goal tools at runtime (mirrors the
+          # goal-tools group dir in config-real.toml). The dir names must
+          # match the external_tools bundle.
           rushi.config.paths = {
             sessions_root = "sessions";
             native_tool_paths = [ "tools/bash" "tools/edit" "tools/read" "tools/write" ];
+            extension_tool_paths = [ "tools/goal" "tools/goal_blocked" "tools/goal_complete" ];
           };
 
           # [limits]
@@ -135,6 +139,13 @@
               { window = "model.before"; command = "harness-hook-simple-english"; args = [ ]; }
               { window = "run.idle"; command = "harness-hook-simple-english"; args = [ ]; }
             ];
+          };
+
+          # [system_prompt] — dev prompt text from config-real.toml. The
+          # text lives in system-prompt.txt (byte-identical to the local dev
+          # config). Empty text would fall back to the kernel default.
+          rushi.config.system_prompt = {
+            text = builtins.readFile ./system-prompt.txt;
           };
 
           # [loop]
