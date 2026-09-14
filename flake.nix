@@ -53,7 +53,9 @@
 
     # ── Extension / hook repos (each is its own git repo + flake). ──
     # At hosting time, flip each to a pinned github ref.
-    rushi-goal-mode = { url = "github:TonyWu20/rushi-goal-mode"; };
+    # goal-mode is pinned local (git+file:) because its github remote
+    # predates the wrapAsTool/wrapAsExt name+src fix; the local HEAD has it.
+    rushi-goal-mode = { url = "git+file:///home/tony/programming/rushi-exts/goal-app"; };
     no-find-grep = { url = "github:TonyWu20/no-find-grep-rushi"; };
     rushi-simple-english = { url = "github:TonyWu20/rushi-simple-english"; };
   };

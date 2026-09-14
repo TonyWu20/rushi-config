@@ -764,17 +764,17 @@
         "nixpkgs": "nixpkgs_7"
       },
       "locked": {
-        "lastModified": 1789340218,
-        "narHash": "sha256-0/EbzFrcR2w/CVWgNh9GfD1BfqzpvMgFOgG4Y/CJrSs=",
-        "owner": "TonyWu20",
-        "repo": "rushi-goal-mode",
-        "rev": "0b4bfe2273fc45b363d8e08a9012bf8e2862b4e0",
-        "type": "github"
+        "lastModified": 1789346799,
+        "narHash": "sha256-s6QAi/9aTgSutrjBzmLw+f7CVBFcJeRG03gmuFj2Y28=",
+        "ref": "refs/heads/main",
+        "rev": "dcdd378e726fcd7b321ea0ca929eda8bbb6247bd",
+        "revCount": 13,
+        "type": "git",
+        "url": "file:///home/tony/programming/rushi-exts/goal-app"
       },
       "original": {
-        "owner": "TonyWu20",
-        "repo": "rushi-goal-mode",
-        "type": "github"
+        "type": "git",
+        "url": "file:///home/tony/programming/rushi-exts/goal-app"
       }
     },
     "rushi-kernel": {
@@ -842,11 +842,11 @@
         "rushi-kernel-src": "rushi-kernel-src"
       },
       "locked": {
-        "lastModified": 1789363681,
-        "narHash": "sha256-10JuVMn3r2U97S9L4dbRwa2R4tEc/k1tNKiu5a/MUZk=",
+        "lastModified": 1789363945,
+        "narHash": "sha256-VzC5BxbVyp0uF9b5Y206ZHDhgDCE0ELAloaTMLoKWBM=",
         "ref": "refs/heads/ratatui-widget-based",
-        "rev": "362bd8e4f068d37020b1de586973c18ac12edf4c",
-        "revCount": 55,
+        "rev": "c14ce580fed89a7bb631629df960079a486b0e2b",
+        "revCount": 57,
         "type": "git",
         "url": "file:///home/tony/programming/rushi-tui-ratatui-widget-based"
       },
