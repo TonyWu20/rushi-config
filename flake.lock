@@ -713,14 +713,17 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1789232907,
-        "narHash": "sha256-TIf2QAgLiuwytnizMFPLdexltZlkXF9HEAvGTZEoKG4=",
-        "path": "/home/tony/programming/rushi-exts/no-find-grep",
-        "type": "path"
+        "lastModified": 1789232886,
+        "narHash": "sha256-DjTrD0Ol3Yk/+K3NGmqz+CsEcPACqtilWCAw9e718aw=",
+        "owner": "TonyWu20",
+        "repo": "no-find-grep-rushi",
+        "rev": "a19aa5db471a30f31de51ced49ed012dc1b0abb9",
+        "type": "github"
       },
       "original": {
-        "path": "/home/tony/programming/rushi-exts/no-find-grep",
-        "type": "path"
+        "owner": "TonyWu20",
+        "repo": "no-find-grep-rushi",
+        "type": "github"
       }
     },
     "root": {
@@ -743,13 +746,16 @@
       },
       "locked": {
         "lastModified": 1789348410,
-        "narHash": "sha256-HMtnMEJ5bvU7Ke6fVUOoh7Z85bAlELOfwD3UWt75FqI=",
-        "path": "/home/tony/programming/rust-unix-harness",
-        "type": "path"
+        "narHash": "sha256-S1yrKly4L5baU80zDf7TRsIA1u1gZZKt6F2YyTPHHP8=",
+        "ref": "refs/heads/main",
+        "rev": "46b712ed0dca0a6da14098bf1e14518422b7b0db",
+        "revCount": 206,
+        "type": "git",
+        "url": "file:///home/tony/programming/rust-unix-harness"
       },
       "original": {
-        "path": "/home/tony/programming/rust-unix-harness",
-        "type": "path"
+        "type": "git",
+        "url": "file:///home/tony/programming/rust-unix-harness"
       }
     },
     "rushi-goal-mode": {
@@ -758,14 +764,17 @@
         "nixpkgs": "nixpkgs_7"
       },
       "locked": {
-        "lastModified": 1789346799,
-        "narHash": "sha256-6UAIj/V5KYuFLuAcU9zgGuGcdwGd0RoMV0IU6LSihUQ=",
-        "path": "/home/tony/programming/rushi-exts/goal-app",
-        "type": "path"
+        "lastModified": 1789340218,
+        "narHash": "sha256-0/EbzFrcR2w/CVWgNh9GfD1BfqzpvMgFOgG4Y/CJrSs=",
+        "owner": "TonyWu20",
+        "repo": "rushi-goal-mode",
+        "rev": "0b4bfe2273fc45b363d8e08a9012bf8e2862b4e0",
+        "type": "github"
       },
       "original": {
-        "path": "/home/tony/programming/rushi-exts/goal-app",
-        "type": "path"
+        "owner": "TonyWu20",
+        "repo": "rushi-goal-mode",
+        "type": "github"
       }
     },
     "rushi-kernel": {
@@ -776,27 +785,33 @@
         "nixpkgs": "nixpkgs_13"
       },
       "locked": {
-        "lastModified": 1789340113,
-        "narHash": "sha256-X9XmXLxJpGs1lL/sliT5/BXuBxyBzfqp0KtBigBsK+Q=",
-        "path": "/home/tony/programming/rust-unix-harness",
-        "type": "path"
+        "lastModified": 1789348410,
+        "narHash": "sha256-S1yrKly4L5baU80zDf7TRsIA1u1gZZKt6F2YyTPHHP8=",
+        "ref": "refs/heads/main",
+        "rev": "46b712ed0dca0a6da14098bf1e14518422b7b0db",
+        "revCount": 206,
+        "type": "git",
+        "url": "file:///home/tony/programming/rust-unix-harness"
       },
       "original": {
-        "path": "/home/tony/programming/rust-unix-harness",
-        "type": "path"
+        "type": "git",
+        "url": "file:///home/tony/programming/rust-unix-harness"
       }
     },
     "rushi-kernel-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1789340113,
-        "narHash": "sha256-X9XmXLxJpGs1lL/sliT5/BXuBxyBzfqp0KtBigBsK+Q=",
-        "path": "/home/tony/programming/rust-unix-harness",
-        "type": "path"
+        "lastModified": 1789348410,
+        "narHash": "sha256-S1yrKly4L5baU80zDf7TRsIA1u1gZZKt6F2YyTPHHP8=",
+        "ref": "refs/heads/main",
+        "rev": "46b712ed0dca0a6da14098bf1e14518422b7b0db",
+        "revCount": 206,
+        "type": "git",
+        "url": "file:///home/tony/programming/rust-unix-harness"
       },
       "original": {
-        "path": "/home/tony/programming/rust-unix-harness",
-        "type": "path"
+        "type": "git",
+        "url": "file:///home/tony/programming/rust-unix-harness"
       }
     },
     "rushi-simple-english": {
@@ -805,14 +820,17 @@
         "nixpkgs": "nixpkgs_8"
       },
       "locked": {
-        "lastModified": 1789337804,
-        "narHash": "sha256-FWk0+BEGiH/qMD//guyNLCsYHTSBXFQ64ZfD7ulVPEQ=",
-        "path": "/home/tony/programming/rushi-simple-english",
-        "type": "path"
+        "lastModified": 1789334025,
+        "narHash": "sha256-N7sEssjaNv2hb8Am6sQrxI35SZTdTniQZ8AVi/CkgJo=",
+        "owner": "TonyWu20",
+        "repo": "rushi-simple-english",
+        "rev": "660db0f25858cbc5afc820ed355f22aedc39d078",
+        "type": "github"
       },
       "original": {
-        "path": "/home/tony/programming/rushi-simple-english",
-        "type": "path"
+        "owner": "TonyWu20",
+        "repo": "rushi-simple-english",
+        "type": "github"
       }
     },
     "rushi-tui": {
@@ -824,14 +842,17 @@
         "rushi-kernel-src": "rushi-kernel-src"
       },
       "locked": {
-        "lastModified": 1789340100,
-        "narHash": "sha256-iyJ0SI3x76q5uwZrE5dPU6fwC14+nNWs9tW3HIvuRy8=",
-        "path": "/home/tony/programming/rushi-tui-ratatui-widget-based",
-        "type": "path"
+        "lastModified": 1789363681,
+        "narHash": "sha256-10JuVMn3r2U97S9L4dbRwa2R4tEc/k1tNKiu5a/MUZk=",
+        "ref": "refs/heads/ratatui-widget-based",
+        "rev": "362bd8e4f068d37020b1de586973c18ac12edf4c",
+        "revCount": 55,
+        "type": "git",
+        "url": "file:///home/tony/programming/rushi-tui-ratatui-widget-based"
       },
       "original": {
-        "path": "/home/tony/programming/rushi-tui-ratatui-widget-based",
-        "type": "path"
+        "type": "git",
+        "url": "file:///home/tony/programming/rushi-tui-ratatui-widget-based"
       }
     },
     "rust-analyzer-src": {

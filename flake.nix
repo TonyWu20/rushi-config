@@ -38,22 +38,24 @@
     # ── Kernel (provides lib.mkRushi). Bootstrap local checkout. ──
     # At hosting time, flip to a pinned github ref:
     #   url = "github:TonyWu20/rust-unix-harness?ref=v0.1.0";
-    rushi-flake = { url = "path:/home/tony/programming/rust-unix-harness"; };
+    rushi-flake = { url = "git+file:///home/tony/programming/rust-unix-harness"; };
+    rushi-tui = {
 
-    # ── TUI front-end (Tier-2, the canonical fork). Bootstrap local. ──
-    # At hosting time, flip to a pinned github ref.
-    rushi-tui = { url = "path:/home/tony/programming/rushi-tui-ratatui-widget-based"; };
-    # Keep the TUI's kernel inputs in lockstep with THIS consumer's kernel
-    # pin. Without this, the TUI flake's own bootstrap inputs could drift
-    # to a different kernel ref than the one the consumer builds.
-    rushi-tui.inputs.rushi-kernel.url = "path:/home/tony/programming/rust-unix-harness";
-    rushi-tui.inputs.rushi-kernel-src.url = "path:/home/tony/programming/rust-unix-harness";
+      # ── TUI front-end (Tier-2, the canonical fork). Bootstrap local. ──
+      # At hosting time, flip to a pinned github ref.
+      url = "git+file:///home/tony/programming/rushi-tui-ratatui-widget-based";
+      # Keep the TUI's kernel inputs in lockstep with THIS consumer's kernel
+      # pin. Without this, the TUI flake's own bootstrap inputs could drift
+      # to a different kernel ref than the one the consumer builds.
+      inputs.rushi-kernel.url = "git+file:///home/tony/programming/rust-unix-harness";
+      inputs.rushi-kernel-src.url = "git+file:///home/tony/programming/rust-unix-harness";
+    };
 
     # ── Extension / hook repos (each is its own git repo + flake). ──
     # At hosting time, flip each to a pinned github ref.
-    rushi-goal-mode = { url = "path:/home/tony/programming/rushi-exts/goal-app"; };
-    no-find-grep = { url = "path:/home/tony/programming/rushi-exts/no-find-grep"; };
-    rushi-simple-english = { url = "path:/home/tony/programming/rushi-simple-english"; };
+    rushi-goal-mode = { url = "github:TonyWu20/rushi-goal-mode"; };
+    no-find-grep = { url = "github:TonyWu20/no-find-grep-rushi"; };
+    rushi-simple-english = { url = "github:TonyWu20/rushi-simple-english"; };
   };
 
   outputs = inputs @ { self, nixpkgs, fenix, ... }:
