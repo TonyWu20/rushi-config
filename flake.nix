@@ -56,7 +56,12 @@
     rushi-goal-mode = { url = "github:TonyWu20/rushi-goal-mode"; };
     no-find-grep = { url = "github:TonyWu20/no-find-grep-rushi"; };
     rushi-simple-english = { url = "github:TonyWu20/rushi-simple-english"; };
-    rushi-statusline = { url = "github:TonyWu20/rushi-statusline"; };
+    # Local pin until the host-cwd protocol (tick cwd field + RUSHI_CWD)
+    # is released and stabilized upstream. Flip back to
+    # github:TonyWu20/rushi-statusline at hosting time.
+    rushi-statusline = {
+      url = "git+file:///home/tony/programming/rushi-exts/ext-rs/statusline-rs";
+    };
   };
 
   outputs = inputs @ { self, nixpkgs, fenix, ... }:
