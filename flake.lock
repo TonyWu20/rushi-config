@@ -766,15 +766,15 @@
       "locked": {
         "lastModified": 1789346799,
         "narHash": "sha256-s6QAi/9aTgSutrjBzmLw+f7CVBFcJeRG03gmuFj2Y28=",
-        "ref": "refs/heads/main",
+        "owner": "TonyWu20",
+        "repo": "rushi-goal-mode",
         "rev": "dcdd378e726fcd7b321ea0ca929eda8bbb6247bd",
-        "revCount": 13,
-        "type": "git",
-        "url": "file:///home/tony/programming/rushi-exts/goal-app"
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "file:///home/tony/programming/rushi-exts/goal-app"
+        "owner": "TonyWu20",
+        "repo": "rushi-goal-mode",
+        "type": "github"
       }
     },
     "rushi-kernel": {
