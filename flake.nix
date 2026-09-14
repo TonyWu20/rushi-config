@@ -204,6 +204,14 @@
             goalFlake.packages.${system}."goal-ext"
             seFlake.packages.${system}."simple-english-ext"
           ];
+
+          # The entry directory names of the packages above, as shipped in
+          # $out/ui_extensions/ and as the TUI's extension discovery names
+          # them. Declared here so the generated tools.manifest lists the
+          # bundled UI extensions (rushi.ui_extension_names), keeping the
+          # manifest truthful for `rushi setup --locked`. The order mirrors
+          # external_ui_extensions.
+          rushi.ui_extension_names = [ "statusline" "goal" "simple-english" ];
         };
 
       # Nix attrset siblings do not share scope, so the configured package

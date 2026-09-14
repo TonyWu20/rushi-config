@@ -784,11 +784,11 @@
         "nixpkgs": "nixpkgs_6"
       },
       "locked": {
-        "lastModified": 1789367361,
-        "narHash": "sha256-QU+m/fLnccTSavXXLam6KMN6e6boe89x4SZdNo/ev0A=",
+        "lastModified": 1789383582,
+        "narHash": "sha256-5F7Bdc3sO7yGbtiZ5v5KxgzqwwXxug1tOBV2P+4b1d4=",
         "ref": "refs/heads/main",
-        "rev": "eff2e51b20caf0322766bb8660110207336daada",
-        "revCount": 207,
+        "rev": "845dc08ce104ffdefba0bc84a03454f0a83bb8fc",
+        "revCount": 208,
         "type": "git",
         "url": "file:///home/tony/programming/rust-unix-harness"
       },
