@@ -56,6 +56,7 @@
     rushi-goal-mode = { url = "github:TonyWu20/rushi-goal-mode"; };
     no-find-grep = { url = "github:TonyWu20/no-find-grep-rushi"; };
     rushi-simple-english = { url = "github:TonyWu20/rushi-simple-english"; };
+    rushi-statusline = { url = "github:TonyWu20/rushi-statusline"; };
   };
 
   outputs = inputs @ { self, nixpkgs, fenix, ... }:
@@ -69,6 +70,7 @@
       goalFlake = inputs."rushi-goal-mode";
       nfgFlake = inputs."no-find-grep";
       seFlake = inputs."rushi-simple-english";
+      statuslineFlake = inputs."rushi-statusline";
 
       # ── The config module: mirrors config-real.toml (the local dev
       # config). In the Nix version, ext binaries and the TUI are bundled
@@ -181,7 +183,13 @@
           ];
 
           # ── External UI extensions — bundled into $out/ui_extensions. ──
+          # Mirrors the [tui] ext_dirs list in config-real.toml: statusline,
+          # goal, simple-english (notify-rs is commented out there, so it
+          # is not bundled). [tui] ext_dirs stays empty in the generated
+          # config; the TUI then falls back to <config_dir>/ui_extensions,
+          # which is where mkRushi copies these.
           rushi.external_ui_extensions = [
+            statuslineFlake.packages.${system}.statusline
             goalFlake.packages.${system}."goal-ext"
             seFlake.packages.${system}."simple-english-ext"
           ];
