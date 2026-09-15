@@ -784,11 +784,11 @@
         "nixpkgs": "nixpkgs_6"
       },
       "locked": {
-        "lastModified": 1789383582,
-        "narHash": "sha256-5F7Bdc3sO7yGbtiZ5v5KxgzqwwXxug1tOBV2P+4b1d4=",
+        "lastModified": 1789478354,
+        "narHash": "sha256-aAESt56XM4fulN+aYdm/+EauKZqgj0RiNoD1Dzza46A=",
         "ref": "refs/heads/main",
-        "rev": "845dc08ce104ffdefba0bc84a03454f0a83bb8fc",
-        "revCount": 208,
+        "rev": "3a0f148195f9ff15d418edad3f6ad0034b01a811",
+        "revCount": 215,
         "type": "git",
         "url": "file:///home/tony/programming/rust-unix-harness"
       },
@@ -824,11 +824,11 @@
         "nixpkgs": "nixpkgs_14"
       },
       "locked": {
-        "lastModified": 1789417717,
-        "narHash": "sha256-diMdRc59I5CaryNR8KVjWjdf7L3W33IQKKnW8G4YAu8=",
+        "lastModified": 1789478354,
+        "narHash": "sha256-aAESt56XM4fulN+aYdm/+EauKZqgj0RiNoD1Dzza46A=",
         "ref": "refs/heads/main",
-        "rev": "2dd1ebc68f9a63964b9e70133c101f9c86677d09",
-        "revCount": 209,
+        "rev": "3a0f148195f9ff15d418edad3f6ad0034b01a811",
+        "revCount": 215,
         "type": "git",
         "url": "file:///home/tony/programming/rust-unix-harness"
       },
@@ -840,11 +840,11 @@
     "rushi-kernel-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1789417717,
-        "narHash": "sha256-diMdRc59I5CaryNR8KVjWjdf7L3W33IQKKnW8G4YAu8=",
+        "lastModified": 1789478354,
+        "narHash": "sha256-aAESt56XM4fulN+aYdm/+EauKZqgj0RiNoD1Dzza46A=",
         "ref": "refs/heads/main",
-        "rev": "2dd1ebc68f9a63964b9e70133c101f9c86677d09",
-        "revCount": 209,
+        "rev": "3a0f148195f9ff15d418edad3f6ad0034b01a811",
+        "revCount": 215,
         "type": "git",
         "url": "file:///home/tony/programming/rust-unix-harness"
       },
@@ -900,11 +900,11 @@
         "rushi-kernel-src": "rushi-kernel-src"
       },
       "locked": {
-        "lastModified": 1789418031,
-        "narHash": "sha256-tBkBl50sy+l2GiTAp3+GTk4Kw73CWbpCYH6OUbj0EAI=",
-        "ref": "refs/heads/ratatui-widget-based",
-        "rev": "56105b9fd5d36172291ece67149a5328007c6343",
-        "revCount": 63,
+        "lastModified": 1789478655,
+        "narHash": "sha256-GXfaullzktq+iLsRrc54sRvNnnOE5yuVfnK5pqOvOTY=",
+        "ref": "refs/heads/main",
+        "rev": "7a0be2ee8174244c243efb860dc8cf02343da8bb",
+        "revCount": 76,
         "type": "git",
         "url": "file:///home/tony/programming/rushi-tui-ratatui-widget-based"
       },

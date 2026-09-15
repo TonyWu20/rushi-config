@@ -80,7 +80,9 @@
       # ── The config module: mirrors config-real.toml (the local dev
       # config). In the Nix version, ext binaries and the TUI are bundled
       # into the package by lib.mkRushi, so hook `command` fields are the
-      # BARE binary names (resolved from $out/hooks/), not local dev paths.
+      # BARE binary names, not local dev paths. The kernel resolves a bare
+      # name against the package bin/ dir, then the package hooks/ dir,
+      # then PATH.
       configModule =
         { system }:
         { config, lib, pkgs, ... }:
@@ -124,9 +126,9 @@
             context_budget_tokens = 262144;
           };
 
-          # [hooks] — bare binary names; the external hook packages are
-          # copied into $out/hooks by lib.mkRushi and the kernel resolves
-          # the command from there.
+          # [hooks] — bare binary names. The kernel resolves a bare name
+          # against the package bin/ dir (kernel-shipped hooks), then
+          # $out/hooks/ (ext hooks bundled by lib.mkRushi), then PATH.
           rushi.config.hooks = {
             timeout_ms = 30000;
             on = [
