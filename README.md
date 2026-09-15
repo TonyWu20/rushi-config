@@ -56,3 +56,36 @@ The `configModule` in `flake.nix` mirrors `config-real.toml` from the
 kernel checkout. Hook `command` fields are bare binary names. The
 hook binaries are bundled into `$out/hooks` by `lib.mkRushi`, and the
 kernel resolves them from there at runtime.
+
+## Troubleshooting: external hooks not firing
+
+Symptom: session events show
+`hook.<window>.error` / `spawn harness-hook-…: No such file or
+directory`. The kernel found the hook registration but not the
+binary.
+
+Cause (as of 2026-09-15): the running `rushi` binary predates the
+kernel's hook-resolution commit (`d43337f` in rust-unix-harness,
+"resolve external hook commands against the package layout"). Older
+binaries spawn bare hook names straight from `PATH`; the devShell
+only exposes the package `bin/` dir on `PATH`, and external hooks
+live in `hooks/` — so every external hook fails with ENOENT while
+the kernel-shipped `harness-hook-compact` (in `bin/`) works.
+
+Fixes, in order of preference:
+
+- Run a build from the current flake.lock. The kernel at or after
+  `d43337f` resolves a bare name against `<exe_dir>/<name>` then
+  `<exe_dir>/../hooks/<name>`, so a freshly built package is
+  self-contained and does not need `PATH` at all.
+- `nix develop` here now adds a `rushi-hook-shim` derivation that
+  re-exposes the package `hooks/` dir as a `bin/` dir, so the
+  devShell `PATH` carries the hook names even for older binaries.
+- If a run still fails: re-enter the devShell after a
+  `nix flake update` (an already-open shell keeps the old store
+  paths) and start a new session — a running loop keeps its binary
+  for the whole session.
+
+Verify with: `nix develop --command sh -c 'command -v
+harness-hook-goal-arm'` — it must print a store path, not "not
+found".

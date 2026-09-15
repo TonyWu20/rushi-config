@@ -264,10 +264,31 @@
             overlays = [ fenix.overlays.default ];
           };
           configured = self.packages.${system}.default;
+          # External hook binaries live in the package's hooks/ dir
+          # (lib.mkRushi), not bin/. The devShell mechanism only exposes
+          # a buildInput's bin/ dirs on PATH, so a bare hook command name
+          # is not found on PATH. The current kernel resolves bare names
+          # against <exe_dir>/../hooks/ when it runs from the package,
+          # but a binary built before that kernel fix (an older store
+          # build) still needs the PATH entry. This shim re-exposes the
+          # package's hooks/ as a bin/ dir so the devShell mechanism
+          # picks it up.
+          hookPathShim = pkgs.stdenv.mkDerivation {
+            pname = "rushi-hook-shim";
+            version = "0.1";
+            nativeBuildInputs = [ configured ];
+            unpackPhase = "true";
+            installPhase = ''
+              mkdir -p $out/bin
+              if [ -d ${configured}/hooks ]; then
+                cp -rL ${configured}/hooks/. $out/bin/
+              fi
+            '';
+          };
         in
         {
           default = pkgs.mkShell {
-            buildInputs = [ configured ];
+            buildInputs = [ configured hookPathShim ];
             shellHook = ''
               echo "Configured rushi (v${configured.version})."
               echo "  bin/           rushi + all stage/tool/hook binaries + tui"
