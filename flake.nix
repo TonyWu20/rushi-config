@@ -87,7 +87,7 @@
       # name against the package bin/ dir, then the package hooks/ dir,
       # then PATH.
       configModule =
-        { system }:
+        { system, tuiPkg }:
         { config, lib, pkgs, ... }:
         {
           rushi.version = "0.1";
@@ -184,7 +184,12 @@
 
           # ── TUI binary (Tier-2 front-end from the TUI flake). Shipped
           # at $out/bin/tui so the kernel's side-by-side resolver finds it.
-          rushi.tui = tuiFlake.packages.${system}.default;
+          # The derivation is shimmed (tuiPkg, see forSystem): a bare
+          # `bin/tui` picks up the package's sibling config.toml, which
+          # is what makes the bundled ui_extensions/ layer reachable.
+          # The kernel's TUI launcher always passes --config, so the shim
+          # is a no-op on that path.
+          rushi.tui = tuiPkg;
 
           # ── External tools (goal-mode) — bundled into $out/tools. ──
           rushi.external_tools = [
@@ -232,10 +237,63 @@
             inherit system;
             overlays = [ fenix.overlays.default ];
           };
+          # The raw TUI binary from the TUI flake.
+          rawTui = tuiFlake.packages.${system}.default;
+          #
+          # ── The self-contained TUI front-end the flake delivers. ──
+          # The raw tui binary resolves `--config` against the process CWD
+          # (default `config.toml`). The Nix package puts its generated
+          # `config.toml` and the bundled `ui_extensions/` layer at the
+          # package root, but a raw binary run on its own cannot know that,
+          # so the TUI's `<config_dir>/ui_extensions` extension fallback
+          # (empty `[tui] ext_dirs`) resolves against the CWD and finds no
+          # bundled extensions. The `rushi` kernel resolves its config
+          # side-by-side (`<exe_dir>/../config.toml`) and passes an explicit
+          # `--config`, so `bin/rushi` already works; to make the delivered
+          # `bin/tui` self-contained too, ship a thin shim as the tui: when
+          # the caller did not pass `--config` / `--config=…`, inject the
+          # side-by-side `config.toml`. An explicit `--config` (what the
+          # kernel passes) is honored as-is. This mirrors the kernel's own
+          # side-by-side resolution.
+          #
+          # mkRushi installs this derivation's `bin/tui` into the configured
+          # package and adds it to that package's build inputs, so the raw
+          # tui store path the shim `exec`s is guaranteed present in the
+          # final closure.
+          tuiPkg = pkgs.stdenv.mkDerivation {
+            pname = "rushi-tui";
+            version = "0.1";
+            nativeBuildInputs = [ rawTui ];
+            unpackPhase = "true";
+            installPhase = ''
+              mkdir -p $out/bin
+              cat > $out/bin/tui <<'SHIM'
+              #!/bin/sh
+              # rushi-tui side-by-side config shim (see the flake comment
+              # for why). Honor an explicit --config; otherwise default to
+              # the config.toml that sits next to this binary in the
+              # package layout, so the TUI's <config_dir>/ui_extensions
+              # fallback finds the bundled UI extensions.
+              dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+              have=""
+              for a in "$@"; do
+                case "$a" in
+                  --config|--config=*) have=1 ;;
+                esac
+              done
+              if [ -n "$have" ]; then
+                exec ${rawTui}/bin/tui "$@"
+              else
+                exec ${rawTui}/bin/tui "$@" --config "$dir/config.toml"
+              fi
+              SHIM
+              chmod +x $out/bin/tui
+            '';
+          };
           # The fully configured rushi: kernel + TUI + config + exts.
           mk = rushiKernel.lib.mkRushi {
             inherit pkgs;
-            modules = [ (configModule { inherit system; }) ];
+            modules = [ (configModule { inherit system tuiPkg; }) ];
           };
         in
         {
@@ -243,8 +301,9 @@
           rushi = mk.package;
           # Raw kernel binary (no user config), for `rushi setup` / dev.
           rushi-kernel = rushiKernel.packages.${system}.rushi;
-          # The TUI binary on its own.
-          tui = tuiFlake.packages.${system}.default;
+          # The TUI binary on its own (raw; the self-contained tui lives in
+          # the configured package's bin/).
+          tui = rawTui;
         };
     in
     {

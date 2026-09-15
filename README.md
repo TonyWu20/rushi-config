@@ -15,6 +15,8 @@ and calls the kernel's `lib.mkRushi` to produce one runnable package.
 Layout of the `.#rushi` output (`$out`):
 
     bin/            rushi + all stage/tool binaries + tui
+                    (bin/tui is a side-by-side config shim; see
+                     Troubleshooting: TUI extensions not loaded)
     tools/          tool manifests (kernel + external tools)
     ui_extensions/  external UI extension dirs (ext.toml + binaries)
     hooks/          external hook binaries
@@ -89,3 +91,32 @@ Fixes, in order of preference:
 Verify with: `nix develop --command sh -c 'command -v
 harness-hook-goal-arm'` — it must print a store path, not "not
 found".
+
+## Troubleshooting: TUI extensions not loaded
+
+Symptom: the TUI starts with none of the bundled UI extensions. The
+statusline, goal row, and simple-english are all missing, even though
+`$out/ui_extensions/` holds them. It happens when the TUI is run on
+its own (`bin/tui` or the devShell `tui`), not via `rushi`.
+
+Cause: the raw `tui` binary reads its config from the CWD. The
+`--config` flag defaults to a CWD `config.toml`. The Nix package
+keeps `config.toml` and `ui_extensions/` at the package root. The
+TUI finds extensions via `<config_dir>/ui_extensions`. A CWD config
+dir has no bundled extensions, so none load. The `rushi` kernel does
+not hit this, because it resolves its config side-by-side and passes
+an explicit `--config` to the TUI.
+
+Fix (shipped in this flake): the flake ships `bin/tui` as a thin
+side-by-side config shim (see `tuiPkg` in `flake.nix`). When the
+caller did not pass `--config`, the shim injects
+`--config <package>/config.toml`. That file sits next to the binary,
+so `config_dir` becomes the package root and the bundled
+`ui_extensions/` load. An explicit `--config` still wins. The kernel
+passes one, so that path is unchanged.
+
+Verify: run the packaged `bin/tui` from a CWD with no `config.toml`.
+Set `TUI_EXT_LOG` to a file first. Every bundled extension must
+appear as a `spawn … gen=0` line in that file.
+
+    TUI_EXT_LOG=/tmp/ext.log $OUT/bin/tui
