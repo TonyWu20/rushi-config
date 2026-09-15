@@ -38,12 +38,12 @@
     # ── Kernel (provides lib.mkRushi). Bootstrap local checkout. ──
     # At hosting time, flip to a pinned github ref:
     #   url = "github:TonyWu20/rust-unix-harness?ref=v0.1.0";
-    rushi-kernel = { url = "git+file:///home/tony/programming/rust-unix-harness"; };
+    rushi-kernel = { url = "github:TonyWu20/rushi"; };
     rushi-tui = {
 
       # ── TUI front-end (Tier-2, the canonical fork). Bootstrap local. ──
       # At hosting time, flip to a pinned github ref.
-      url = "git+file:///home/tony/programming/rushi-tui-ratatui-widget-based";
+      url = "github:TonyWu20/rushi-tui";
       # The TUI flake declares its own kernel input (`rushi-kernel`,
       # the launcher package). It aliases THIS flake's kernel input,
       # so there is exactly one kernel pin to maintain. `follows`
@@ -63,7 +63,7 @@
     # is released and stabilized upstream. Flip back to
     # github:TonyWu20/rushi-statusline at hosting time.
     rushi-statusline = {
-      url = "git+file:///home/tony/programming/rushi-exts/ext-rs/statusline-rs";
+      url = "github:TonyWu20/rushi-statusline";
     };
   };
 

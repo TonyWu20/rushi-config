@@ -554,15 +554,15 @@
       "locked": {
         "lastModified": 1789484338,
         "narHash": "sha256-g7irE4aywgvvae/E14W4kjhX/RFuRpHeqCp1l+HsvlU=",
-        "ref": "refs/heads/main",
+        "owner": "TonyWu20",
+        "repo": "rushi",
         "rev": "bb06e9477dddaddb91f92665f285d0962e5f567e",
-        "revCount": 217,
-        "type": "git",
-        "url": "file:///home/tony/programming/rust-unix-harness"
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "file:///home/tony/programming/rust-unix-harness"
+        "owner": "TonyWu20",
+        "repo": "rushi",
+        "type": "github"
       }
     },
     "rushi-simple-english": {
@@ -590,17 +590,17 @@
         "nixpkgs": "nixpkgs_9"
       },
       "locked": {
-        "lastModified": 1789418230,
-        "narHash": "sha256-di8O/DyxZx5PCcqcJaa8wkWRzDXcCYz0FnmcCcG89Tc=",
-        "ref": "refs/heads/main",
-        "rev": "0ece426fca2c5504f2eb61444e5143c22c9fdf37",
-        "revCount": 5,
-        "type": "git",
-        "url": "file:///home/tony/programming/rushi-exts/ext-rs/statusline-rs"
+        "lastModified": 1789486244,
+        "narHash": "sha256-iRP5+epg8UxoQ0sQcMO8EApo/UPjL7ir5ZiNEi9eUeY=",
+        "owner": "TonyWu20",
+        "repo": "rushi-statusline",
+        "rev": "920f66ee63096d8277c3700963625e252db04305",
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "file:///home/tony/programming/rushi-exts/ext-rs/statusline-rs"
+        "owner": "TonyWu20",
+        "repo": "rushi-statusline",
+        "type": "github"
       }
     },
     "rushi-tui": {
@@ -615,15 +615,15 @@
       "locked": {
         "lastModified": 1789489584,
         "narHash": "sha256-2dpl0TYcrS2ooulS5dAR+fajAU0E26ezrcXYxvlO2Dc=",
-        "ref": "refs/heads/main",
+        "owner": "TonyWu20",
+        "repo": "rushi-tui",
         "rev": "0298ce7abeaa49a28f90952d0dac0086960cf4b6",
-        "revCount": 84,
-        "type": "git",
-        "url": "file:///home/tony/programming/rushi-tui-ratatui-widget-based"
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "file:///home/tony/programming/rushi-tui-ratatui-widget-based"
+        "owner": "TonyWu20",
+        "repo": "rushi-tui",
+        "type": "github"
       }
     },
     "rust-analyzer-src": {
