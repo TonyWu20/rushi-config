@@ -552,11 +552,11 @@
         "nixpkgs": "nixpkgs_7"
       },
       "locked": {
-        "lastModified": 1789496675,
-        "narHash": "sha256-9kuoIBa0cUFffakBssfqGD4bq0VQE8IUI7hpykW9buc=",
+        "lastModified": 1789502092,
+        "narHash": "sha256-BaF5eEGlUjzDjGIJTYp4Hz9ofzdYYGtLPx7G1CyNwqQ=",
         "owner": "TonyWu20",
         "repo": "rushi",
-        "rev": "17d1b90ed71d77dc489784138ca176f151015f37",
+        "rev": "cad713e74b5c43d4bb79c9b9a695616270dbff5e",
         "type": "github"
       },
       "original": {
@@ -613,11 +613,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789500831,
-        "narHash": "sha256-0bgIhVrNo9ezKUVmnoGDDrG+n5eVi3kvGLTolNl5+nA=",
+        "lastModified": 1789502414,
+        "narHash": "sha256-puhUDFgO4EVc7Y1kyigfVuFn9tVXcFVxNZVVjBIis4w=",
         "owner": "TonyWu20",
         "repo": "rushi-tui",
-        "rev": "d8f624c176f0f5d318fedf41fc05a892042cb3c8",
+        "rev": "539ed491a61b1ad22894559b45823e7dddd12bad",
         "type": "github"
       },
       "original": {
