@@ -44,16 +44,14 @@
       # ── TUI front-end (Tier-2, the canonical fork). Bootstrap local. ──
       # At hosting time, flip to a pinned github ref.
       url = "git+file:///home/tony/programming/rushi-tui-ratatui-widget-based";
-      # The TUI flake declares its own kernel inputs: `rushi-kernel`
-      # (the launcher package) and `rushi-kernel-src` (the raw source
-      # tree its sed rewrite uses). Both alias THIS flake's single
-      # kernel input, so there is exactly one kernel pin to maintain.
-      # `follows` shares the rev structurally (a partial
-      # `nix flake update` can no longer drift them); the child's
-      # `flake = false` on `rushi-kernel-src` still hands it the
-      # source tree, not the flake outputs.
+      # The TUI flake declares its own kernel input (`rushi-kernel`,
+      # the launcher package). It aliases THIS flake's kernel input,
+      # so there is exactly one kernel pin to maintain. `follows`
+      # shares the rev structurally (a partial `nix flake update` can
+      # no longer drift it). The TUI's `rushi-common` crate comes in
+      # as a cargo git dep (rev pinned in its Cargo.lock), so no raw
+      # source-tree input is needed anymore.
       inputs.rushi-kernel.follows = "rushi-kernel";
-      inputs.rushi-kernel-src.follows = "rushi-kernel";
     };
 
     # ── Extension / hook repos (each is its own git repo + flake). ──

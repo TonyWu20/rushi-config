@@ -610,17 +610,14 @@
         "nixpkgs": "nixpkgs_10",
         "rushi-kernel": [
           "rushi-kernel"
-        ],
-        "rushi-kernel-src": [
-          "rushi-kernel"
         ]
       },
       "locked": {
-        "lastModified": 1789479845,
-        "narHash": "sha256-hRFxeiMQAHp3xkEEjpXN85lgqix3/+2rC5TYLD0IfiI=",
+        "lastModified": 1789486299,
+        "narHash": "sha256-boWDdd7CzfAbgUdi5T1EFKPX2+hF7VBXLS+KLLTNXls=",
         "ref": "refs/heads/main",
-        "rev": "c3e7327e0e432a0f1aff635b6465c822d9a790d4",
-        "revCount": 78,
+        "rev": "ca5c444d71f2ea30829e7083d66f53bd2b5f610a",
+        "revCount": 81,
         "type": "git",
         "url": "file:///home/tony/programming/rushi-tui-ratatui-widget-based"
       },
