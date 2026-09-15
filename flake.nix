@@ -295,15 +295,99 @@
             inherit pkgs;
             modules = [ (configModule { inherit system tuiPkg; }) ];
           };
+          #
+          # ── The self-contained TUI package the flake delivers as `tui`.
+          # The raw tui binary resolves `--config` against the process CWD
+          # (default `config.toml`), so a bare binary cannot reach the
+          # generated config or the bundled ui_extensions/ layer. This
+          # derivation packages the raw tui together with the generated
+          # config.toml (byte-identical to the configured package's, from
+          # mk.config) and the bundled UI extensions, and ships bin/tui as
+          # a thin shim: when the caller did not pass `--config` /
+          # `--config=…`, inject the side-by-side config.toml so the TUI's
+          # <config_dir>/ui_extensions fallback finds the bundled
+          # extensions. An explicit `--config` is honored as-is. The raw
+          # binary is kept private at bin/.tui-real inside the package, so
+          # no store path is embedded in the shim.
+          extUiPkgs = [
+            statuslineFlake.packages.${system}.statusline
+            goalFlake.packages.${system}."goal-ext"
+            seFlake.packages.${system}."simple-english-ext"
+          ];
+          tuiConfigFile = pkgs.writeText "rushi-tui-config.toml" mk.config;
+          # Copy each bundled ext package into $out/ui_extensions/ (the
+          # same layout logic as lib.mkRushi's extUiScript), then verify
+          # the three entry dirs exist (drift guard, same as mkRushi).
+          extUiCopyScript = builtins.concatStringsSep "\n" (
+            builtins.map (s:
+              let sp = if builtins.isString s then s else toString s; in ''
+                if [ -d "${sp}" ]; then
+                  cp -rL "${sp}/." "$out/ui_extensions/" 2>/dev/null || true
+                fi
+              ''
+            ) extUiPkgs
+          );
+          checkTuiUiExtScript = builtins.concatStringsSep "\n" (
+            builtins.map (n: ''
+              if [ ! -d "$out/ui_extensions/${n}" ]; then
+                echo "rushi-tui: ui extension '${n}' has no entry in $out/ui_extensions/" >&2
+                exit 1
+              fi
+            '' ) [ "statusline" "goal" "simple-english" ]
+          );
+          tuiFull = pkgs.stdenv.mkDerivation {
+            pname = "rushi-tui";
+            version = "0.1";
+            nativeBuildInputs = [ rawTui ] ++ extUiPkgs;
+            unpackPhase = "true";
+            installPhase = ''
+              mkdir -p $out/bin $out/ui_extensions
+              cp ${rawTui}/bin/tui $out/bin/.tui-real
+              chmod +x $out/bin/.tui-real
+              cat > $out/bin/tui <<'SHIM'
+              #!/bin/sh
+              # rushi-tui side-by-side config shim (see the flake comment
+              # for why). Honor an explicit --config; otherwise default to
+              # the config.toml that sits next to this binary in the
+              # package layout, so the TUI's <config_dir>/ui_extensions
+              # fallback finds the bundled UI extensions.
+              dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+              have=""
+              for a in "$@"; do
+                case "$a" in
+                  --config|--config=*) have=1 ;;
+                esac
+              done
+              if [ -n "$have" ]; then
+                exec "$dir/bin/.tui-real" "$@"
+              else
+                exec "$dir/bin/.tui-real" "$@" --config "$dir/config.toml"
+              fi
+              SHIM
+              chmod +x $out/bin/tui
+              ${extUiCopyScript}
+              ${checkTuiUiExtScript}
+              # passAsFile: $v is a path to a file containing the value.
+              # ${tuiConfigFile} interpolates the writeText store path
+              # (added to the closure automatically as a build dep).
+              cp ${tuiConfigFile} $out/config.toml
+              test -x $out/bin/.tui-real || { echo "ERROR: raw tui binary missing"; exit 1; }
+            '';
+            meta = with pkgs.lib; {
+              description = "Self-contained rushi TUI (bundled config + UI extensions)";
+              mainProgram = "tui";
+            };
+          };
         in
         {
           default = mk.package;
           rushi = mk.package;
           # Raw kernel binary (no user config), for `rushi setup` / dev.
           rushi-kernel = rushiKernel.packages.${system}.rushi;
-          # The TUI binary on its own (raw; the self-contained tui lives in
-          # the configured package's bin/).
-          tui = rawTui;
+          # The self-contained TUI front-end: raw tui + generated
+          # config.toml + bundled ui_extensions/ + the side-by-side
+          # config shim, so a delivered `tui` loads its extensions.
+          tui = tuiFull;
         };
     in
     {
