@@ -183,12 +183,13 @@
           rushi.tools = [ "read" "write" "edit" "bash" ];
 
           # ── TUI binary (Tier-2 front-end from the TUI flake). Shipped
-          # at $out/bin/tui so the kernel's side-by-side resolver finds it.
-          # The derivation is shimmed (tuiPkg, see forSystem): a bare
-          # `bin/tui` picks up the package's sibling config.toml, which
-          # is what makes the bundled ui_extensions/ layer reachable.
-          # The kernel's TUI launcher always passes --config, so the shim
-          # is a no-op on that path.
+          # at $out/bin/tui next to the package's generated config.toml
+          # and bundled ui_extensions/. Since rushi-tui dd69b84 (issue
+          # #11), a bare `bin/tui` with no `--config` resolves its
+          # config side-by-side (`<exe_dir>/../config.toml`), so the
+          # bundled extension layer loads without any wrapper shim. The
+          # kernel's TUI launcher passes an explicit `--config`, which
+          # still wins over every fallback step.
           rushi.tui = tuiPkg;
 
           # ── External tools (goal-mode) — bundled into $out/tools. ──
@@ -240,56 +241,16 @@
           # The raw TUI binary from the TUI flake.
           rawTui = tuiFlake.packages.${system}.default;
           #
-          # ── The self-contained TUI front-end the flake delivers. ──
-          # The raw tui binary resolves `--config` against the process CWD
-          # (default `config.toml`). The Nix package puts its generated
-          # `config.toml` and the bundled `ui_extensions/` layer at the
-          # package root, but a raw binary run on its own cannot know that,
-          # so the TUI's `<config_dir>/ui_extensions` extension fallback
-          # (empty `[tui] ext_dirs`) resolves against the CWD and finds no
-          # bundled extensions. The `rushi` kernel resolves its config
-          # side-by-side (`<exe_dir>/../config.toml`) and passes an explicit
-          # `--config`, so `bin/rushi` already works; to make the delivered
-          # `bin/tui` self-contained too, ship a thin shim as the tui: when
-          # the caller did not pass `--config` / `--config=…`, inject the
-          # side-by-side `config.toml`. An explicit `--config` (what the
-          # kernel passes) is honored as-is. This mirrors the kernel's own
-          # side-by-side resolution.
-          #
-          # mkRushi installs this derivation's `bin/tui` into the configured
-          # package and adds it to that package's build inputs, so the raw
-          # tui store path the shim `exec`s is guaranteed present in the
-          # final closure.
-          tuiPkg = pkgs.stdenv.mkDerivation {
-            pname = "rushi-tui";
-            version = "0.1";
-            nativeBuildInputs = [ rawTui ];
-            unpackPhase = "true";
-            installPhase = ''
-              mkdir -p $out/bin
-              cat > $out/bin/tui <<'SHIM'
-              #!/bin/sh
-              # rushi-tui side-by-side config shim (see the flake comment
-              # for why). Honor an explicit --config; otherwise default to
-              # the config.toml that sits next to this binary in the
-              # package layout, so the TUI's <config_dir>/ui_extensions
-              # fallback finds the bundled UI extensions.
-              dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-              have=""
-              for a in "$@"; do
-                case "$a" in
-                  --config|--config=*) have=1 ;;
-                esac
-              done
-              if [ -n "$have" ]; then
-                exec ${rawTui}/bin/tui "$@"
-              else
-                exec ${rawTui}/bin/tui "$@" --config "$dir/config.toml"
-              fi
-              SHIM
-              chmod +x $out/bin/tui
-            '';
-          };
+          # ── TUI binary for the configured package: the raw TUI as-is.
+          # rushi-tui since dd69b84 (issue #11) resolves its config
+          # side-by-side with the binary (<exe_dir>/../config.toml,
+          # after the --config flag and $CONFIG). Because mkRushi installs
+          # it into the configured package's bin/ next to the generated
+          # config.toml and bundled ui_extensions/, the bare binary loads
+          # the bundled extension layer with no wrapper. An earlier
+          # shell-shim version is obsolete now that the TUI resolves
+          # side-by-side natively.
+          tuiPkg = rawTui;
           # The fully configured rushi: kernel + TUI + config + exts.
           mk = rushiKernel.lib.mkRushi {
             inherit pkgs;
@@ -297,18 +258,14 @@
           };
           #
           # ── The self-contained TUI package the flake delivers as `tui`.
-          # The raw tui binary resolves `--config` against the process CWD
-          # (default `config.toml`), so a bare binary cannot reach the
-          # generated config or the bundled ui_extensions/ layer. This
-          # derivation packages the raw tui together with the generated
-          # config.toml (byte-identical to the configured package's, from
-          # mk.config) and the bundled UI extensions, and ships bin/tui as
-          # a thin shim: when the caller did not pass `--config` /
-          # `--config=…`, inject the side-by-side config.toml so the TUI's
-          # <config_dir>/ui_extensions fallback finds the bundled
-          # extensions. An explicit `--config` is honored as-is. The raw
-          # binary is kept private at bin/.tui-real inside the package, so
-          # no store path is embedded in the shim.
+          # rawTui + the generated config.toml (byte-identical to the
+          # configured package's, from mk.config) + the bundled
+          # ui_extensions/, all laid out side by side. Since rushi-tui
+          # dd69b84 (issue #11) the bare binary resolves its config
+          # next to itself (<exe_dir>/../config.toml, after the
+          # --config flag and $CONFIG), so no wrapper is needed: the
+          # binary shipped at bin/tui finds config.toml and the
+          # bundled extension layer in the same directory tree.
           extUiPkgs = [
             statuslineFlake.packages.${system}.statusline
             goalFlake.packages.${system}."goal-ext"
@@ -342,36 +299,19 @@
             unpackPhase = "true";
             installPhase = ''
               mkdir -p $out/bin $out/ui_extensions
-              cp ${rawTui}/bin/tui $out/bin/.tui-real
-              chmod +x $out/bin/.tui-real
-              cat > $out/bin/tui <<'SHIM'
-              #!/bin/sh
-              # rushi-tui side-by-side config shim (see the flake comment
-              # for why). Honor an explicit --config; otherwise default to
-              # the config.toml that sits next to this binary in the
-              # package layout, so the TUI's <config_dir>/ui_extensions
-              # fallback finds the bundled UI extensions.
-              dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-              have=""
-              for a in "$@"; do
-                case "$a" in
-                  --config|--config=*) have=1 ;;
-                esac
-              done
-              if [ -n "$have" ]; then
-                exec "$dir/bin/.tui-real" "$@"
-              else
-                exec "$dir/bin/.tui-real" "$@" --config "$dir/config.toml"
-              fi
-              SHIM
+              # The raw TUI binary, shipped beside its config.toml and
+              # ui_extensions/ so the TUI's native side-by-side config
+              # resolution (rushi-tui dd69b84, issue #11) finds them.
+              # No wrapper: an explicit --config still wins over every
+              # fallback step in the TUI.
+              cp ${rawTui}/bin/tui $out/bin/tui
               chmod +x $out/bin/tui
               ${extUiCopyScript}
               ${checkTuiUiExtScript}
-              # passAsFile: $v is a path to a file containing the value.
               # ${tuiConfigFile} interpolates the writeText store path
               # (added to the closure automatically as a build dep).
               cp ${tuiConfigFile} $out/config.toml
-              test -x $out/bin/.tui-real || { echo "ERROR: raw tui binary missing"; exit 1; }
+              test -x $out/bin/tui || { echo "ERROR: tui binary missing"; exit 1; }
             '';
             meta = with pkgs.lib; {
               description = "Self-contained rushi TUI (bundled config + UI extensions)";

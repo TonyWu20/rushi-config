@@ -16,8 +16,9 @@ and calls the kernel's `lib.mkRushi` to produce one runnable package.
 Layout of the `.#rushi` output (`$out`):
 
     bin/            rushi + all stage/tool binaries + tui
-                    (bin/tui is a side-by-side config shim; see
-                     Troubleshooting: TUI extensions not loaded)
+                    (bin/tui is the raw TUI binary; it resolves its
+                     config side-by-side, see Troubleshooting:
+                     TUI extensions not loaded)
     tools/          tool manifests (kernel + external tools)
     ui_extensions/  external UI extension dirs (ext.toml + binaries)
     hooks/          external hook binaries
@@ -26,8 +27,7 @@ Layout of the `.#rushi` output (`$out`):
 
 Layout of the `.#tui` output (self-contained TUI package):
 
-    bin/tui         side-by-side config shim
-    bin/.tui-real   the raw TUI binary
+    bin/tui         the TUI binary (resolves config side-by-side)
     config.toml     generated from the Nix module options
     ui_extensions/  the three bundled UI extensions
 
@@ -115,17 +115,18 @@ dir has no bundled extensions, so none load. The `rushi` kernel does
 not hit this, because it resolves its config side-by-side and passes
 an explicit `--config` to the TUI.
 
-Fix (shipped in this flake): the configured `rushi` package ships
-`bin/tui` as a thin side-by-side config shim (`tuiPkg` in `flake.nix`).
-When the caller did not pass `--config`, the shim injects
-`--config <package>/config.toml`. That file sits next to the binary,
-so `config_dir` becomes the package root and the bundled
-`ui_extensions/` load. The kernel passes one, so that path is unchanged.
+Fix (shipped upstream, wired up here): the root cause was fixed in
+rushi-tui commit `dd69b84` (issue #11, merged as `0a2cf53`). The TUI
+now resolves its config in this order: the `--config` flag, the
+`$CONFIG` env var, a side-by-side `<exe_dir>/../config.toml`, then
+the CWD `config.toml`. The flake ships the raw `bin/tui` next to
+`config.toml` and `ui_extensions/` in both the `rushi` and `tui`
+packages, so the side-by-side step finds the bundled config and
+extension layer. No wrapper shim is needed any more. An explicit
+`--config` (what the kernel passes) still wins over every fallback.
 
-The `.#tui` flake output is now that same self-contained package
-instead of the raw TUI binary. `nix run .#tui` from any CWD loads the
-bundled extensions the same way. An explicit `--config` still wins in
-both.
+The `.#tui` flake output is that self-contained package. `nix run
+.#tui` from any CWD loads the bundled extensions the same way.
 
 Verify: run the packaged `bin/tui` from a CWD with no `config.toml`.
 Set `TUI_EXT_LOG` to a file first. Every bundled extension must
@@ -136,8 +137,10 @@ appear as a `spawn … gen=0` line in that file.
 ## Decisions
 
 - 2026-09-16: `.#tui` changed from the raw TUI binary to a
-  self-contained package (raw tui + config.toml + ui_extensions/ +
-  the side-by-side config shim). `nix run .#tui` now loads the
-  bundled extensions. Upstream issue TonyWu20/rushi-tui#11 tracks the
-  TUI-side fix (side-by-side `--config` default). Once it lands, the
-  shim and this wrapper can be dropped.
+  self-contained package (raw tui + config.toml + ui_extensions/).
+  `nix run .#tui` loads the bundled extensions from any CWD.
+- 2026-09-16: the side-by-side `--config` fix landed upstream
+  (TonyWu20/rushi-tui#11, commit `dd69b84`, merged as `0a2cf53`).
+  The flake dropped its `bin/tui` config shim. `rushi.tui` is now
+  the raw TUI package. The lock must keep `rushi-tui` pinned at or
+  after `dd69b84`.
