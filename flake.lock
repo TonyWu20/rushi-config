@@ -590,11 +590,11 @@
         "nixpkgs": "nixpkgs_9"
       },
       "locked": {
-        "lastModified": 1789486244,
-        "narHash": "sha256-iRP5+epg8UxoQ0sQcMO8EApo/UPjL7ir5ZiNEi9eUeY=",
+        "lastModified": 1789492802,
+        "narHash": "sha256-FerLUj1I6s96DyXDro1bTuANkeKeQYeYXPu0Ju76i68=",
         "owner": "TonyWu20",
         "repo": "rushi-statusline",
-        "rev": "920f66ee63096d8277c3700963625e252db04305",
+        "rev": "6c0a9e6f34913793fe6d57402d41a1cf2d7dd37a",
         "type": "github"
       },
       "original": {
