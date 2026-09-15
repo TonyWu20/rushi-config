@@ -900,11 +900,11 @@
         "rushi-kernel-src": "rushi-kernel-src"
       },
       "locked": {
-        "lastModified": 1789478655,
-        "narHash": "sha256-GXfaullzktq+iLsRrc54sRvNnnOE5yuVfnK5pqOvOTY=",
+        "lastModified": 1789479845,
+        "narHash": "sha256-hRFxeiMQAHp3xkEEjpXN85lgqix3/+2rC5TYLD0IfiI=",
         "ref": "refs/heads/main",
-        "rev": "7a0be2ee8174244c243efb860dc8cf02343da8bb",
-        "revCount": 76,
+        "rev": "c3e7327e0e432a0f1aff635b6465c822d9a790d4",
+        "revCount": 78,
         "type": "git",
         "url": "file:///home/tony/programming/rushi-tui-ratatui-widget-based"
       },
