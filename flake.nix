@@ -7,7 +7,7 @@
 #   nix build .#rushi       # build the configured rushi package
 #   nix run   .#rushi       # run rushi from the configured package
 #
-# The kernel flake (rushi-flake) provides `lib.mkRushi`; this flake feeds
+# The kernel flake (rushi-kernel) provides `lib.mkRushi`; this flake feeds
 # it NixOS-style modules that declare the model, limits, tools, and the
 # external ext/hook/UI-ext packages. Each ext repo ships its own flake
 # (Mode B, ext-flake-authoring.md), so this flake just references their
@@ -15,14 +15,14 @@
 #
 # Dependency shape (a clean DAG, no cycle):
 #
-#   rushi-flake (kernel, base)  <── rushi-tui (needs rushi-common from it)
+#   rushi-kernel (kernel, base)  <── rushi-tui (needs rushi-common from it)
 #        │                                  │
 #        └────────────┬─────────────────────┘
 #                     ▼
 #            rushi-config (this flake: the single deployable entry point)
 #
 # The kernel ref is pinned ONCE, here. The TUI flake's own kernel inputs
-# are overridden to point at the same kernel, so the `rushi-common`
+# `follows` this flake's `rushi-kernel` input, so the `rushi-common`
 # crate and the kernel binary always come from the same source.
 
 {
@@ -38,17 +38,22 @@
     # ── Kernel (provides lib.mkRushi). Bootstrap local checkout. ──
     # At hosting time, flip to a pinned github ref:
     #   url = "github:TonyWu20/rust-unix-harness?ref=v0.1.0";
-    rushi-flake = { url = "git+file:///home/tony/programming/rust-unix-harness"; };
+    rushi-kernel = { url = "git+file:///home/tony/programming/rust-unix-harness"; };
     rushi-tui = {
 
       # ── TUI front-end (Tier-2, the canonical fork). Bootstrap local. ──
       # At hosting time, flip to a pinned github ref.
       url = "git+file:///home/tony/programming/rushi-tui-ratatui-widget-based";
-      # Keep the TUI's kernel inputs in lockstep with THIS consumer's kernel
-      # pin. Without this, the TUI flake's own bootstrap inputs could drift
-      # to a different kernel ref than the one the consumer builds.
-      inputs.rushi-kernel.url = "git+file:///home/tony/programming/rust-unix-harness";
-      inputs.rushi-kernel-src.url = "git+file:///home/tony/programming/rust-unix-harness";
+      # The TUI flake declares its own kernel inputs: `rushi-kernel`
+      # (the launcher package) and `rushi-kernel-src` (the raw source
+      # tree its sed rewrite uses). Both alias THIS flake's single
+      # kernel input, so there is exactly one kernel pin to maintain.
+      # `follows` shares the rev structurally (a partial
+      # `nix flake update` can no longer drift them); the child's
+      # `flake = false` on `rushi-kernel-src` still hands it the
+      # source tree, not the flake outputs.
+      inputs.rushi-kernel.follows = "rushi-kernel";
+      inputs.rushi-kernel-src.follows = "rushi-kernel";
     };
 
     # ── Extension / hook repos (each is its own git repo + flake). ──
@@ -70,7 +75,7 @@
       supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
       pkgLib = nixpkgs.lib;
 
-      rushiFlake = inputs."rushi-flake";
+      rushiKernel = inputs."rushi-kernel";
       tuiFlake = inputs."rushi-tui";
       goalFlake = inputs."rushi-goal-mode";
       nfgFlake = inputs."no-find-grep";
@@ -230,7 +235,7 @@
             overlays = [ fenix.overlays.default ];
           };
           # The fully configured rushi: kernel + TUI + config + exts.
-          mk = rushiFlake.lib.mkRushi {
+          mk = rushiKernel.lib.mkRushi {
             inherit pkgs;
             modules = [ (configModule { inherit system; }) ];
           };
@@ -239,7 +244,7 @@
           default = mk.package;
           rushi = mk.package;
           # Raw kernel binary (no user config), for `rushi setup` / dev.
-          rushi-kernel = rushiFlake.packages.${system}.rushi;
+          rushi-kernel = rushiKernel.packages.${system}.rushi;
           # The TUI binary on its own.
           tui = tuiFlake.packages.${system}.default;
         };
@@ -250,10 +255,10 @@
       # Re-expose the kernel's NixOS / home-manager modules so a consumer
       # config can do `programs.rushi.enable = true; package = <pkg>;`.
       nixosModules = {
-        rushi = rushiFlake.nixosModules.rushi;
+        rushi = rushiKernel.nixosModules.rushi;
       };
       homeManagerConfig = {
-        rushi = rushiFlake.homeManagerConfig.rushi;
+        rushi = rushiKernel.homeManagerConfig.rushi;
       };
 
       # Dev shell with the configured rushi on PATH.

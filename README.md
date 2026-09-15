@@ -27,7 +27,7 @@ All local inputs use `path:` URLs for local development. When the
 repos are hosted, flip each to a pinned `github:` ref. Then run
 `nix flake update <input>` to pin it in the lock.
 
-- `rushi-flake`: `path:/home/tony/programming/rust-unix-harness`
+- `rushi-kernel`: `path:/home/tony/programming/rust-unix-harness`
   -> `github:TonyWu20/rushi?ref=<rev>`
 - `rushi-tui`: `path:/home/tony/programming/rushi-tui-ratatui-widget-based`
   -> `github:TonyWu20/rushi-tui?ref=<rev>`
