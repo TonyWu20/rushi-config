@@ -35,9 +35,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # ── Kernel (provides lib.mkRushi). Bootstrap local checkout. ──
-    # At hosting time, flip to a pinned github ref:
-    #   url = "github:TonyWu20/rust-unix-harness?ref=v0.1.0";
+    # ── Kernel (provides lib.mkRushi). Pinned github ref; the lock pins
+    # the exact commit. Since rushi#10 (merge bf87e41) lib.mkRushi
+    # auto-derives extension_tool_paths + ui-ext names at build time,
+    # defaults rushi.tools to the full kernel set, and guards hook
+    # commands. Bump: `nix flake update rushi-kernel`. ──
     rushi-kernel = { url = "github:TonyWu20/rushi"; };
     rushi-tui = {
 
@@ -65,6 +67,7 @@
     rushi-statusline = {
       url = "github:TonyWu20/rushi-statusline";
     };
+    rushi-obscura-web-access = { url = "github:TonyWu20/rushi-obscura-web-access"; };
   };
 
   outputs = inputs @ { self, nixpkgs, fenix, ... }:
@@ -79,6 +82,7 @@
       nfgFlake = inputs."no-find-grep";
       seFlake = inputs."rushi-simple-english";
       statuslineFlake = inputs."rushi-statusline";
+      obscuraWebFlake = inputs."rushi-obscura-web-access";
 
       # ── The config module: mirrors config-real.toml (the local dev
       # config). In the Nix version, ext binaries and the TUI are bundled
@@ -89,13 +93,27 @@
       configModule =
         { system, tuiPkg }:
         { config, lib, pkgs, ... }:
+        let
+          # Single source of truth for the native tool set. Paths win over
+          # names: the runtime (`route`) scans these dirs, and a tool's name
+          # is just the basename of its dir. This feeds only
+          # `native_tool_paths`; since rushi#10 the kernel defaults
+          # `rushi.tools` to its own full tool set, so no tool whitelist
+          # is declared here anymore.
+          nativeToolPaths = [
+            "tools/bash"
+            "tools/edit"
+            "tools/read"
+            "tools/write"
+          ];
+        in
         {
           rushi.version = "0.1";
 
           # [model] + per-model overrides (dotted model name is quoted).
           rushi.config.model = {
             api = "responses";
-            max_output_tokens = 32768;
+            max_output_tokens = 65536;
             reasoning_effort = "xhigh";
             "Qwen3.8-27B-NVFP4-RTX5090-DFlash2" = {
               model_id = "Qwen3.8-27B-NVFP4-RTX5090-DFlash2";
@@ -107,16 +125,18 @@
           };
           rushi.config.active.model = "Qwen3.8-27B-NVFP4-RTX5090-DFlash2";
 
-          # [paths] — kernel-native tool paths resolve inside the package
-          # ($out/tools). The ext tool manifests are bundled into $out/tools
-          # by rushi.external_tools below; extension_tool_paths lists them so
-          # the kernel registers the goal tools at runtime (mirrors the
-          # goal-tools group dir in config-real.toml). The dir names must
-          # match the external_tools bundle.
+          # [paths] — native tool manifest dirs resolve inside the package
+          # ($out); the runtime (`route`) scans them and registers every
+          # tool found.
+          #
+          # extension_tool_paths is no longer declared here: since rushi#10
+          # lib.mkRushi auto-derives it at build time from the
+          # `rushi.external_tools` list below (ext tool dirs discovered in
+          # the copied $out/tools/ layout), so the external list is the
+          # single source of truth.
           rushi.config.paths = {
             sessions_root = "sessions";
-            native_tool_paths = [ "tools/bash" "tools/edit" "tools/read" "tools/write" ];
-            extension_tool_paths = [ "tools/goal" "tools/goal_blocked" "tools/goal_complete" ];
+            native_tool_paths = nativeToolPaths;
           };
 
           # [limits]
@@ -179,8 +199,10 @@
             };
           };
 
-          # ── Kernel tools (whitelist from the kernel's bundled set). ──
-          rushi.tools = [ "read" "write" "edit" "bash" ];
+          # ── Kernel tools: since rushi#10 the kernel defaults
+          # `rushi.tools` to its full tool set (eval-time derivation from
+          # tools/*/tool.toml), which is exactly the native set shipped
+          # here — so no explicit override is declared. ──
 
           # ── TUI binary (Tier-2 front-end from the TUI flake). Shipped
           # at $out/bin/tui next to the package's generated config.toml
@@ -197,6 +219,8 @@
             goalFlake.packages.${system}.goal
             goalFlake.packages.${system}."goal-blocked"
             goalFlake.packages.${system}."goal-complete"
+            obscuraWebFlake.packages.${system}."web-fetch"
+            obscuraWebFlake.packages.${system}."web-search"
           ];
 
           # ── External hooks — bundled into $out/hooks. ──
@@ -221,13 +245,11 @@
             seFlake.packages.${system}."simple-english-ext"
           ];
 
-          # The entry directory names of the packages above, as shipped in
-          # $out/ui_extensions/ and as the TUI's extension discovery names
-          # them. Declared here so the generated tools.manifest lists the
-          # bundled UI extensions (rushi.ui_extension_names), keeping the
-          # manifest truthful for `rushi setup --locked`. The order mirrors
-          # external_ui_extensions.
-          rushi.ui_extension_names = [ "statusline" "goal" "simple-english" ];
+          # rushi.ui_extension_names is no longer declared: since rushi#10
+          # lib.mkRushi auto-discovers the ext entry dir names at build
+          # time from the bundled $out/ui_extensions/ layout (each holds
+          # ext.toml) and records them in tools.manifest. It remains an
+          # optional drift-guard override, so we omit it (declare-once).
         };
 
       # Nix attrset siblings do not share scope, so the configured package
@@ -273,24 +295,32 @@
           ];
           tuiConfigFile = pkgs.writeText "rushi-tui-config.toml" mk.config;
           # Copy each bundled ext package into $out/ui_extensions/ (the
-          # same layout logic as lib.mkRushi's extUiScript), then verify
-          # the three entry dirs exist (drift guard, same as mkRushi).
+          # same layout logic as lib.mkRushi's extUiScript). Since
+          # rushi#10 entry-dir names are auto-discovered (each ext.toml
+          # dir), so each source must ship one, else the build fails
+          # with a clear error instead of silently dropping the ext.
           extUiCopyScript = builtins.concatStringsSep "\n" (
-            builtins.map (s:
-              let sp = if builtins.isString s then s else toString s; in ''
-                if [ -d "${sp}" ]; then
-                  cp -rL "${sp}/." "$out/ui_extensions/" 2>/dev/null || true
-                fi
-              ''
-            ) extUiPkgs
-          );
-          checkTuiUiExtScript = builtins.concatStringsSep "\n" (
-            builtins.map (n: ''
-              if [ ! -d "$out/ui_extensions/${n}" ]; then
-                echo "rushi-tui: ui extension '${n}' has no entry in $out/ui_extensions/" >&2
-                exit 1
-              fi
-            '' ) [ "statusline" "goal" "simple-english" ]
+            builtins.map
+              (s:
+                let sp = if builtins.isString s then s else toString s; in
+                ''
+                  # External UI ext source: ${sp}
+                  if [ ! -d "${sp}" ]; then
+                    echo "rushi-tui: UI ext source ${sp} is missing or not a directory" >&2
+                    exit 1
+                  fi
+                  ext_toml=""
+                  for t in "${sp}"/ext.toml "${sp}"/*/ext.toml; do
+                    if [ -f "$t" ]; then ext_toml="$t"; break; fi
+                  done
+                  if [ -z "$ext_toml" ]; then
+                    echo "rushi-tui: UI ext source ${sp} ships no ext.toml (broken ext)" >&2
+                    exit 1
+                  fi
+                  cp -rL "${sp}/." "$out/ui_extensions/"
+                ''
+              )
+              extUiPkgs
           );
           tuiFull = pkgs.stdenv.mkDerivation {
             pname = "rushi-tui";
@@ -307,7 +337,6 @@
               cp ${rawTui}/bin/tui $out/bin/tui
               chmod +x $out/bin/tui
               ${extUiCopyScript}
-              ${checkTuiUiExtScript}
               # ${tuiConfigFile} interpolates the writeText store path
               # (added to the closure automatically as a build dep).
               cp ${tuiConfigFile} $out/config.toml
