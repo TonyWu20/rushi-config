@@ -2,6 +2,57 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Wait for rushi#13: producer `meta.rushi` is the final declare-once (2026-09)
+
+Decision: no consumer-side workarounds for the remaining
+"typed twice" friction. The cleanest version is rushi#13.
+It derives `extension_tool_paths` and ui-ext names at eval
+time from a producer `meta.rushi` attribute. The consumer then
+lists each ext once in `external_*` and types no paths or
+names. The shipped config equals the returned `config`.
+
+- Issue: https://github.com/TonyWu20/rushi/issues/13
+  (follow-up to #10, `enhancement` label).
+- Producer half of the contract: one `meta.rushi` line per
+  ext package. Tools set `entry`, UI exts set `ext`, hooks
+  set `bin`. The #13 body carries the full package list.
+- The attribute is additive and inert until the kernel reads
+  it. #10's discovery keeps working until then, so repos
+  migrate incrementally.
+- The `exts` table now on disk in this flake is provisional.
+  After #13 lands, its `entry`/`bin` fields and the explicit
+  `extension_tool_paths` / `ui_extension_names` declarations
+  are dropped in favor of the meta-derived values.
+- pname-based derivation was rejected: pname is packaging
+  identity (`goal-tool`), not the runtime entry name (`goal`).
+- Producer half done in the local checkouts (2026-09): all five
+  ext repos now advertise `meta.rushi`. Tools set `entry`, UI-exts
+  set `ext`, hooks set `bin`. Verified via `nix eval` (rushi value
+  plus the nixpkgs auto-meta skeleton in `metaKeys` for every
+  package) and by building the no-find-grep, simple-english, and
+  statusline packages after the merge. The consumer half (kernel
+  #13 reader) is still pending. The attribute stays inert until it
+  lands.
+
+## Hook overlap closed: external hooks declared once (2026-09)
+
+`rushi.config.hooks` still overlapped `rushi.external_hooks`: every external
+hook was typed in two places and two types. Once as a bundled package in
+`external_hooks`, and again as a bare `command` name in `config.hooks.on`.
+
+Closed by a single source of truth in the config module, `extHookRegs`.
+Each entry carries the package, its runtime binary, and the windows that fire
+it. Both lists now derive from it:
+
+- `rushi.external_hooks` is `map (r: r.pkg) extHookRegs`.
+- The external portion of `rushi.config.hooks.on` is `extHookOn extHookRegs`.
+- Kernel-shipped hooks (no external package) live in a separate
+  `kernelHookRegs` and prepend the `on` list.
+
+So adding or removing an external hook is a one-line change to
+`extHookRegs`. The kernel's #10 drift guard still verifies each `command`
+resolves to a bundled binary.
+
 ## rushi#10 landed: redundant fields dropped, pin bumped (2026-09)
 
 Kernel merge `bf87e41` (PR #11) shipped the auto-derivation.
@@ -49,7 +100,7 @@ Per-pair resolution:
 | Pair | Resolution |
 |---|---|
 | `config.paths.extension_tool_paths` vs `external_tools` | **Resolved by #10** (kernel `bf87e41`): auto-derived from `external_tools` at build time. This flake no longer declares the field. Before that it stayed an explicit per-entry list (real manifest dirs, not bare names) as the stopgap for the root-scan blindspot below. |
-| `config.hooks` vs `external_hooks` | `hooks.on` is intrinsic config. The window-to-command bindings cannot be derived from a package, so this list stays. The bare-name to binary link is kernel path resolution. |
+| `config.hooks` vs `external_hooks` | Closed locally. The external hooks are declared once in the `extHookRegs` single source, and both `rushi.external_hooks` and the external portion of `rushi.config.hooks.on` derive from it. Only kernel-shipped hooks (no package) remain as a small `kernelHookRegs` list. |
 | `config.paths.native_tool_paths` vs `rushi.tools` | Collapsed here. `nativeToolPaths` is the single source for `native_tool_paths`. Since `bf87e41` the kernel defaults `rushi.tools` to its full tool set, so this flake no longer derives or declares it. |
 | `external_ui_extensions` vs `ui_extension_names` | **Resolved by #10** (kernel `bf87e41`): entry names auto-discovered at build time from the bundled `$out/ui_extensions/` layout. This flake no longer declares `ui_extension_names`. |
 
