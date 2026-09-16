@@ -84,6 +84,68 @@
       statuslineFlake = inputs."rushi-statusline";
       obscuraWebFlake = inputs."rushi-obscura-web-access";
 
+      # ── Declare-once ext tables (the single source of truth). ──
+      # Each ext is declared exactly once: the package to bundle plus
+      # its in-package entry name (hooks carry their binary + windows).
+      # Every build list (rushi.external_*) and every runtime value in
+      # the generated config (tool paths, ui-ext names, [tools] set,
+      # hook commands) derives from these tables in pure Nix, at eval
+      # time. To add or drop an ext, edit one row. `entry`/`bin` are
+      # not derivable from the package (its pname is e.g.
+      # "goal_blocked-tool", not the entry dir "goal_blocked"), so
+      # they are carried here. No shell discovery needed: the kernel's
+      # #10 build-time discovery still runs but only backstops these
+      # values (deduped merge); its hook drift guard still verifies
+      # every command resolves to a bundled binary.
+      exts = system: {
+        # Native kernel tools: manifest dir (relative to the package
+        # root) + tool name. Drives native_tool_paths and [tools].
+        nativeTools = [
+          { path = "tools/bash"; name = "bash"; }
+          { path = "tools/edit"; name = "edit"; }
+          { path = "tools/read"; name = "read"; }
+          { path = "tools/write"; name = "write"; }
+        ];
+        # External tools: package to bundle + entry dir under tools/.
+        extTools = [
+          { pkg = goalFlake.packages.${system}.goal; entry = "goal"; }
+          { pkg = goalFlake.packages.${system}."goal-blocked"; entry = "goal_blocked"; }
+          { pkg = goalFlake.packages.${system}."goal-complete"; entry = "goal_complete"; }
+          { pkg = obscuraWebFlake.packages.${system}."web-fetch"; entry = "web_fetch"; }
+          { pkg = obscuraWebFlake.packages.${system}."web-search"; entry = "web_search"; }
+        ];
+        # External UI extensions: package to bundle + entry dir under
+        # ui_extensions/.
+        extUi = [
+          { pkg = goalFlake.packages.${system}."goal-ext"; entry = "goal"; }
+          { pkg = seFlake.packages.${system}."simple-english-ext"; entry = "simple-english"; }
+          { pkg = statuslineFlake.packages.${system}.statusline; entry = "statusline"; }
+        ];
+        # External hooks: package to bundle, binary name inside hooks/,
+        # and the [[hooks.on]] windows that fire it.
+        extHooks = [
+          { pkg = goalFlake.packages.${system}."hook-goal-idle"; bin = "harness-hook-goal-idle"; windows = [ "run.idle" ]; }
+          { pkg = goalFlake.packages.${system}."hook-goal-compact"; bin = "harness-hook-goal-compact"; windows = [ "compact.before" ]; }
+          { pkg = goalFlake.packages.${system}."hook-goal-tools"; bin = "harness-hook-goal-tools"; windows = [ "tool.before" ]; }
+          { pkg = goalFlake.packages.${system}."hook-goal-arm"; bin = "harness-hook-goal-arm"; windows = [ "model.before" ]; }
+          { pkg = nfgFlake.packages.${system}."hook-no-find-grep"; bin = "harness-hook-no-find-grep"; windows = [ "tool.before" ]; }
+          { pkg = seFlake.packages.${system}."hook-simple-english"; bin = "harness-hook-simple-english"; windows = [ "tool.before" "model.before" "run.idle" ]; }
+        ];
+        # Kernel-shipped hooks (bundled by the kernel in bin/, not by
+        # any external package). No external_hooks entry.
+        kernelHooks = [
+          { command = "harness-hook-compact"; windows = [ "exhausted.handle" "overflow.resolve" ]; }
+        ];
+      };
+      # Flatten { command; windows } regs into [[hooks.on]] rows.
+      hookOn = regs: builtins.concatLists (
+        builtins.map (r: builtins.map (w: { window = w; command = r.command; args = [ ]; }) r.windows) regs
+      );
+      # Flatten { pkg; bin; windows } regs into [[hooks.on]] rows.
+      extHookOn = regs: builtins.concatLists (
+        builtins.map (r: builtins.map (w: { window = w; command = r.bin; args = [ ]; }) r.windows) regs
+      );
+
       # ── The config module: mirrors config-real.toml (the local dev
       # config). In the Nix version, ext binaries and the TUI are bundled
       # into the package by lib.mkRushi, so hook `command` fields are the
@@ -94,18 +156,10 @@
         { system, tuiPkg }:
         { config, lib, pkgs, ... }:
         let
-          # Single source of truth for the native tool set. Paths win over
-          # names: the runtime (`route`) scans these dirs, and a tool's name
-          # is just the basename of its dir. This feeds only
-          # `native_tool_paths`; since rushi#10 the kernel defaults
-          # `rushi.tools` to its own full tool set, so no tool whitelist
-          # is declared here anymore.
-          nativeToolPaths = [
-            "tools/bash"
-            "tools/edit"
-            "tools/read"
-            "tools/write"
-          ];
+          # The declare-once exts table (top of this flake), resolved for
+          # this system. Every build list and runtime value below derives
+          # from `e`.
+          e = exts system;
         in
         {
           rushi.version = "0.1";
@@ -127,16 +181,13 @@
 
           # [paths] — native tool manifest dirs resolve inside the package
           # ($out); the runtime (`route`) scans them and registers every
-          # tool found.
-          #
-          # extension_tool_paths is no longer declared here: since rushi#10
-          # lib.mkRushi auto-derives it at build time from the
-          # `rushi.external_tools` list below (ext tool dirs discovered in
-          # the copied $out/tools/ layout), so the external list is the
-          # single source of truth.
+          # tool found. extension_tool_paths is likewise an explicit,
+          # real-path list: it derives from the exts table (one entry per
+          # bundled ext tool) rather than being auto-derived at build time.
           rushi.config.paths = {
             sessions_root = "sessions";
-            native_tool_paths = nativeToolPaths;
+            native_tool_paths = map (t: t.path) e.nativeTools;
+            extension_tool_paths = map (t: "tools/${t.entry}") e.extTools;
           };
 
           # [limits]
@@ -151,24 +202,13 @@
 
           # [hooks] — bare binary names. The kernel resolves a bare name
           # against the package bin/ dir (kernel-shipped hooks), then
-          # $out/hooks/ (ext hooks bundled by lib.mkRushi), then PATH.
+          # $out/hooks/ (ext hooks bundled by lib.mkRushi), then PATH, and
+          # guards that each command resolves (rushi#10). The `on` list is
+          # derived from the single-source hook regs above: kernel-shipped
+          # hooks first, then the external (Nix-bundled) ones.
           rushi.config.hooks = {
             timeout_ms = 30000;
-            on = [
-              { window = "exhausted.handle"; command = "harness-hook-compact"; args = [ ]; }
-              { window = "overflow.resolve"; command = "harness-hook-compact"; args = [ ]; }
-              # goal-app goal-continuation hooks
-              { window = "run.idle"; command = "harness-hook-goal-idle"; args = [ ]; }
-              { window = "compact.before"; command = "harness-hook-goal-compact"; args = [ ]; }
-              { window = "tool.before"; command = "harness-hook-goal-tools"; args = [ ]; }
-              { window = "model.before"; command = "harness-hook-goal-arm"; args = [ ]; }
-              # no-find-grep tool guard
-              { window = "tool.before"; command = "harness-hook-no-find-grep"; args = [ ]; }
-              # simple-english writing-rule hook (tool + model + idle windows)
-              { window = "tool.before"; command = "harness-hook-simple-english"; args = [ ]; }
-              { window = "model.before"; command = "harness-hook-simple-english"; args = [ ]; }
-              { window = "run.idle"; command = "harness-hook-simple-english"; args = [ ]; }
-            ];
+            on = (hookOn e.kernelHooks) ++ (extHookOn e.extHooks);
           };
 
           # [system_prompt] — dev prompt text from config-real.toml. The
@@ -199,10 +239,15 @@
             };
           };
 
-          # ── Kernel tools: since rushi#10 the kernel defaults
-          # `rushi.tools` to its full tool set (eval-time derivation from
-          # tools/*/tool.toml), which is exactly the native set shipped
-          # here — so no explicit override is declared. ──
+          # ── Kernel tools ──
+          # `rushi.tools` names the kernel tools to ship in the package's
+          # tools/ dir; the manifest records it for `rushi setup --locked`.
+          # Declared explicitly (same table as native_tool_paths, so the
+          # native set has one source of truth) rather than relying on the
+          # kernel's full-set default: adding a kernel tool upstream should
+          # be an intentional one-row change to the exts table, not a
+          # silent behavior change.
+          rushi.tools = builtins.map (t: t.name) e.nativeTools;
 
           # ── TUI binary (Tier-2 front-end from the TUI flake). Shipped
           # at $out/bin/tui next to the package's generated config.toml
@@ -214,24 +259,17 @@
           # still wins over every fallback step.
           rushi.tui = tuiPkg;
 
-          # ── External tools (goal-mode) — bundled into $out/tools. ──
-          rushi.external_tools = [
-            goalFlake.packages.${system}.goal
-            goalFlake.packages.${system}."goal-blocked"
-            goalFlake.packages.${system}."goal-complete"
-            obscuraWebFlake.packages.${system}."web-fetch"
-            obscuraWebFlake.packages.${system}."web-search"
-          ];
+          # ── External tools — bundled into $out/tools. ──
+          # From the exts table: one row per ext tool, both the package
+          # (built + copied) and its `tools/<entry>` path (in the
+          # generated config) derive from that single row.
+          rushi.external_tools = builtins.map (t: t.pkg) e.extTools;
 
           # ── External hooks — bundled into $out/hooks. ──
-          rushi.external_hooks = [
-            goalFlake.packages.${system}."hook-goal-idle"
-            goalFlake.packages.${system}."hook-goal-compact"
-            goalFlake.packages.${system}."hook-goal-tools"
-            goalFlake.packages.${system}."hook-goal-arm"
-            nfgFlake.packages.${system}."hook-no-find-grep"
-            seFlake.packages.${system}."hook-simple-english"
-          ];
+          # From the exts table. The external portion of
+          # rushi.config.hooks.on derives from the same rows (the kernel
+          # drift-guards that each command resolves to a bundled binary).
+          rushi.external_hooks = builtins.map (h: h.pkg) e.extHooks;
 
           # ── External UI extensions — bundled into $out/ui_extensions. ──
           # Mirrors the [tui] ext_dirs list in config-real.toml: statusline,
@@ -239,17 +277,15 @@
           # is not bundled). [tui] ext_dirs stays empty in the generated
           # config; the TUI then falls back to <config_dir>/ui_extensions,
           # which is where mkRushi copies these.
-          rushi.external_ui_extensions = [
-            statuslineFlake.packages.${system}.statusline
-            goalFlake.packages.${system}."goal-ext"
-            seFlake.packages.${system}."simple-english-ext"
-          ];
+          rushi.external_ui_extensions = builtins.map (u: u.pkg) e.extUi;
 
-          # rushi.ui_extension_names is no longer declared: since rushi#10
-          # lib.mkRushi auto-discovers the ext entry dir names at build
-          # time from the bundled $out/ui_extensions/ layout (each holds
-          # ext.toml) and records them in tools.manifest. It remains an
-          # optional drift-guard override, so we omit it (declare-once).
+          # Explicit ui-ext entry names, derived from the same exts table
+          # that drives external_ui_extensions. Declaring it (rather than
+          # relying on the kernel's build-time auto-discovery) makes the
+          # manifest [ui_extensions] list a pure-eval artifact and keeps
+          # it consistent with the bundle list; the kernel's drift guard
+          # still verifies each name has a bundled entry dir.
+          rushi.ui_extension_names = builtins.map (u: u.entry) e.extUi;
         };
 
       # Nix attrset siblings do not share scope, so the configured package
@@ -260,9 +296,10 @@
             inherit system;
             overlays = [ fenix.overlays.default ];
           };
+          # The declare-once exts table for this system.
+          e = exts system;
           # The raw TUI binary from the TUI flake.
           rawTui = tuiFlake.packages.${system}.default;
-          #
           # ── TUI binary for the configured package: the raw TUI as-is.
           # rushi-tui since dd69b84 (issue #11) resolves its config
           # side-by-side with the binary (<exe_dir>/../config.toml,
@@ -288,11 +325,7 @@
           # --config flag and $CONFIG), so no wrapper is needed: the
           # binary shipped at bin/tui finds config.toml and the
           # bundled extension layer in the same directory tree.
-          extUiPkgs = [
-            statuslineFlake.packages.${system}.statusline
-            goalFlake.packages.${system}."goal-ext"
-            seFlake.packages.${system}."simple-english-ext"
-          ];
+          extUiPkgs = builtins.map (u: u.pkg) e.extUi;
           tuiConfigFile = pkgs.writeText "rushi-tui-config.toml" mk.config;
           # Copy each bundled ext package into $out/ui_extensions/ (the
           # same layout logic as lib.mkRushi's extUiScript). Since
