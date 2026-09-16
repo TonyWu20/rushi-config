@@ -35,14 +35,23 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # ── Kernel (provides lib.mkRushi). Pinned github ref; the lock pins
-    # the exact commit. Since rushi#10 (merge bf87e41) lib.mkRushi
-    # auto-derives extension_tool_paths + ui-ext names at build time,
-    # defaults rushi.tools to the full kernel set, and guards hook
-    # commands. Bump: `nix flake update rushi-kernel`. ──
-    rushi-kernel = { url = "github:TonyWu20/rushi"; };
-    rushi-tui = {
+    # Every sub-flake input below follows this flake's `nixpkgs` and
+    # `fenix`, so the whole build graph shares one nixpkgs revision and
+    # one Rust toolchain. Without this each sub-flake pulls its own
+    # nixpkgs + fenix, which duplicates toolchains and risks version
+    # drift between the kernel, the TUI, and the ext packages.
 
+    # ── Kernel (provides lib.mkRushi). Pinned github ref; the lock pins
+    # the exact commit. Since rushi#13 lib.mkRushi reads each producer's
+    # meta.rushi at eval time (tool paths, ui-ext names, hook command
+    # guard) and defaults rushi.tools to the full kernel set.
+    # Bump: `nix flake update rushi-kernel`. ──
+    rushi-kernel = {
+      url = "github:TonyWu20/rushi";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
+    };
+    rushi-tui = {
       # ── TUI front-end (Tier-2, the canonical fork). Bootstrap local. ──
       # At hosting time, flip to a pinned github ref.
       url = "github:TonyWu20/rushi-tui";
@@ -54,20 +63,40 @@
       # as a cargo git dep (rev pinned in its Cargo.lock), so no raw
       # source-tree input is needed anymore.
       inputs.rushi-kernel.follows = "rushi-kernel";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
     };
 
     # ── Extension / hook repos (each is its own git repo + flake). ──
     # At hosting time, flip each to a pinned github ref.
-    rushi-goal-mode = { url = "github:TonyWu20/rushi-goal-mode"; };
-    no-find-grep = { url = "github:TonyWu20/no-find-grep-rushi"; };
-    rushi-simple-english = { url = "github:TonyWu20/rushi-simple-english"; };
+    rushi-goal-mode = {
+      url = "github:TonyWu20/rushi-goal-mode";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
+    };
+    no-find-grep = {
+      url = "github:TonyWu20/no-find-grep-rushi";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
+    };
+    rushi-simple-english = {
+      url = "github:TonyWu20/rushi-simple-english";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
+    };
     # Local pin until the host-cwd protocol (tick cwd field + RUSHI_CWD)
     # is released and stabilized upstream. Flip back to
     # github:TonyWu20/rushi-statusline at hosting time.
     rushi-statusline = {
       url = "github:TonyWu20/rushi-statusline";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
     };
-    rushi-obscura-web-access = { url = "github:TonyWu20/rushi-obscura-web-access"; };
+    rushi-obscura-web-access = {
+      url = "github:TonyWu20/rushi-obscura-web-access";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
+    };
   };
 
   outputs = inputs @ { self, nixpkgs, fenix, ... }:
