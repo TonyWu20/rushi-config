@@ -2,6 +2,31 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## rushi#13 landed: consumer side complete, all ext values meta-derived (2026-09)
+
+The kernel merged #13 on main (merge `5be2920`). `lib.mkRushi` now
+reads each producer's `meta.rushi` at eval time. This flake moved to
+the cleanest declare-once form:
+
+- The `exts` table rows carry only the package. Hook rows keep their
+  `windows`. The `entry` and `bin` fields are gone.
+- `rushi.config.paths.extension_tool_paths` is no longer declared.
+  The kernel fills it from `meta.rushi.entry` at eval time.
+- `rushi.ui_extension_names` is no longer declared. The kernel fills
+  the manifest `[ui_extensions]` list from `meta.rushi.ext`.
+- Hook `command` values in `[[hooks.on]]` derive from
+  `pkg.meta.rushi.bin` in `extHookOn`, so the binary name is typed
+  once, on the producer side.
+- Pins bumped: `rushi-kernel` to `5be2920` (the #13 merge). All five
+  producer inputs to their `meta.rushi` commits (goal-mode `a693684`,
+  no-find-grep `041434d`, statusline `dbc9db2`, simple-english
+  `8e67178`, web-access `6948d46`).
+- Verified by building `.#packages.x86_64-linux.default`. The
+  generated `config.toml` carries the 5 `extension_tool_paths` and
+  all hook commands. `tools.manifest` `[ui_extensions]` lists goal,
+  simple-english, and statusline. No build-time discovery fallback
+  warnings fired (every producer carries `meta.rushi`).
+
 ## Wait for rushi#13: producer `meta.rushi` is the final declare-once (2026-09)
 
 Decision: no consumer-side workarounds for the remaining

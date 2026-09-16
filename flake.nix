@@ -86,17 +86,18 @@
 
       # ── Declare-once ext tables (the single source of truth). ──
       # Each ext is declared exactly once: the package to bundle plus
-      # its in-package entry name (hooks carry their binary + windows).
-      # Every build list (rushi.external_*) and every runtime value in
-      # the generated config (tool paths, ui-ext names, [tools] set,
-      # hook commands) derives from these tables in pure Nix, at eval
-      # time. To add or drop an ext, edit one row. `entry`/`bin` are
-      # not derivable from the package (its pname is e.g.
-      # "goal_blocked-tool", not the entry dir "goal_blocked"), so
-      # they are carried here. No shell discovery needed: the kernel's
-      # #10 build-time discovery still runs but only backstops these
-      # values (deduped merge); its hook drift guard still verifies
-      # every command resolves to a bundled binary.
+      # (for hooks) the [[hooks.on]] windows that fire it. Every build
+      # list (rushi.external_*) and every runtime value in the generated
+      # config (tool paths, ui-ext names, hook commands) derives from
+      # these tables in pure Nix, at eval time. To add or drop an ext,
+      # edit one row.
+      #
+      # Since rushi#13 the kernel reads each producer's meta.rushi at
+      # eval time: tools set meta.rushi.entry, UI-exts set
+      # meta.rushi.ext, hooks set meta.rushi.bin. extension_tool_paths
+      # and the manifest ui-ext list are derived from those declarations,
+      # and a hook command matching a declared bin is drift-guard-exempt.
+      # So this table no longer re-types the entry dir or the binary name.
       exts = system: {
         # Native kernel tools: manifest dir (relative to the package
         # root) + tool name. Drives native_tool_paths and [tools].
@@ -106,30 +107,32 @@
           { path = "tools/read"; name = "read"; }
           { path = "tools/write"; name = "write"; }
         ];
-        # External tools: package to bundle + entry dir under tools/.
+        # External tools. meta.rushi.entry (issue #13) supplies the
+        # tools/<entry> path in the generated config at eval time.
         extTools = [
-          { pkg = goalFlake.packages.${system}.goal; entry = "goal"; }
-          { pkg = goalFlake.packages.${system}."goal-blocked"; entry = "goal_blocked"; }
-          { pkg = goalFlake.packages.${system}."goal-complete"; entry = "goal_complete"; }
-          { pkg = obscuraWebFlake.packages.${system}."web-fetch"; entry = "web_fetch"; }
-          { pkg = obscuraWebFlake.packages.${system}."web-search"; entry = "web_search"; }
+          { pkg = goalFlake.packages.${system}.goal; }
+          { pkg = goalFlake.packages.${system}."goal-blocked"; }
+          { pkg = goalFlake.packages.${system}."goal-complete"; }
+          { pkg = obscuraWebFlake.packages.${system}."web-fetch"; }
+          { pkg = obscuraWebFlake.packages.${system}."web-search"; }
         ];
-        # External UI extensions: package to bundle + entry dir under
-        # ui_extensions/.
+        # External UI extensions. meta.rushi.ext (issue #13) supplies the
+        # manifest [ui_extensions] entry name at eval time.
         extUi = [
-          { pkg = goalFlake.packages.${system}."goal-ext"; entry = "goal"; }
-          { pkg = seFlake.packages.${system}."simple-english-ext"; entry = "simple-english"; }
-          { pkg = statuslineFlake.packages.${system}.statusline; entry = "statusline"; }
+          { pkg = goalFlake.packages.${system}."goal-ext"; }
+          { pkg = seFlake.packages.${system}."simple-english-ext"; }
+          { pkg = statuslineFlake.packages.${system}.statusline; }
         ];
-        # External hooks: package to bundle, binary name inside hooks/,
-        # and the [[hooks.on]] windows that fire it.
+        # External hooks: package to bundle + the [[hooks.on]] windows
+        # that fire it. The bare command name comes from the producer's
+        # meta.rushi.bin (issue #13), so it is not re-typed here.
         extHooks = [
-          { pkg = goalFlake.packages.${system}."hook-goal-idle"; bin = "harness-hook-goal-idle"; windows = [ "run.idle" ]; }
-          { pkg = goalFlake.packages.${system}."hook-goal-compact"; bin = "harness-hook-goal-compact"; windows = [ "compact.before" ]; }
-          { pkg = goalFlake.packages.${system}."hook-goal-tools"; bin = "harness-hook-goal-tools"; windows = [ "tool.before" ]; }
-          { pkg = goalFlake.packages.${system}."hook-goal-arm"; bin = "harness-hook-goal-arm"; windows = [ "model.before" ]; }
-          { pkg = nfgFlake.packages.${system}."hook-no-find-grep"; bin = "harness-hook-no-find-grep"; windows = [ "tool.before" ]; }
-          { pkg = seFlake.packages.${system}."hook-simple-english"; bin = "harness-hook-simple-english"; windows = [ "tool.before" "model.before" "run.idle" ]; }
+          { pkg = goalFlake.packages.${system}."hook-goal-idle"; windows = [ "run.idle" ]; }
+          { pkg = goalFlake.packages.${system}."hook-goal-compact"; windows = [ "compact.before" ]; }
+          { pkg = goalFlake.packages.${system}."hook-goal-tools"; windows = [ "tool.before" ]; }
+          { pkg = goalFlake.packages.${system}."hook-goal-arm"; windows = [ "model.before" ]; }
+          { pkg = nfgFlake.packages.${system}."hook-no-find-grep"; windows = [ "tool.before" ]; }
+          { pkg = seFlake.packages.${system}."hook-simple-english"; windows = [ "tool.before" "model.before" "run.idle" ]; }
         ];
         # Kernel-shipped hooks (bundled by the kernel in bin/, not by
         # any external package). No external_hooks entry.
@@ -141,9 +144,11 @@
       hookOn = regs: builtins.concatLists (
         builtins.map (r: builtins.map (w: { window = w; command = r.command; args = [ ]; }) r.windows) regs
       );
-      # Flatten { pkg; bin; windows } regs into [[hooks.on]] rows.
+      # Flatten { pkg; windows } regs into [[hooks.on]] rows. The bare
+      # command is the producer's meta.rushi.bin (issue #13), so the binary
+      # name is read once on the producer side, not re-typed here.
       extHookOn = regs: builtins.concatLists (
-        builtins.map (r: builtins.map (w: { window = w; command = r.bin; args = [ ]; }) r.windows) regs
+        builtins.map (r: builtins.map (w: { window = w; command = r.pkg.meta.rushi.bin; args = [ ]; }) r.windows) regs
       );
 
       # ── The config module: mirrors config-real.toml (the local dev
@@ -181,13 +186,12 @@
 
           # [paths] — native tool manifest dirs resolve inside the package
           # ($out); the runtime (`route`) scans them and registers every
-          # tool found. extension_tool_paths is likewise an explicit,
-          # real-path list: it derives from the exts table (one entry per
-          # bundled ext tool) rather than being auto-derived at build time.
+          # tool found. extension_tool_paths is left unset so the kernel
+          # (rushi#13) fills it at eval time from each producer's
+          # meta.rushi.entry; a consumer-set value would stay authoritative.
           rushi.config.paths = {
             sessions_root = "sessions";
             native_tool_paths = map (t: t.path) e.nativeTools;
-            extension_tool_paths = map (t: "tools/${t.entry}") e.extTools;
           };
 
           # [limits]
@@ -260,15 +264,16 @@
           rushi.tui = tuiPkg;
 
           # ── External tools — bundled into $out/tools. ──
-          # From the exts table: one row per ext tool, both the package
-          # (built + copied) and its `tools/<entry>` path (in the
-          # generated config) derive from that single row.
+          # One row per ext tool in the exts table. The `tools/<entry>`
+          # paths in the generated config derive from each producer's
+          # meta.rushi.entry (rushi#13) at eval time.
           rushi.external_tools = builtins.map (t: t.pkg) e.extTools;
 
           # ── External hooks — bundled into $out/hooks. ──
-          # From the exts table. The external portion of
-          # rushi.config.hooks.on derives from the same rows (the kernel
-          # drift-guards that each command resolves to a bundled binary).
+          # One row per ext hook in the exts table. The external portion
+          # of rushi.config.hooks.on derives from the same rows; the
+          # bare command names come from each producer's meta.rushi.bin
+          # (rushi#13) and the kernel's reduced drift guard trusts them.
           rushi.external_hooks = builtins.map (h: h.pkg) e.extHooks;
 
           # ── External UI extensions — bundled into $out/ui_extensions. ──
@@ -279,13 +284,10 @@
           # which is where mkRushi copies these.
           rushi.external_ui_extensions = builtins.map (u: u.pkg) e.extUi;
 
-          # Explicit ui-ext entry names, derived from the same exts table
-          # that drives external_ui_extensions. Declaring it (rather than
-          # relying on the kernel's build-time auto-discovery) makes the
-          # manifest [ui_extensions] list a pure-eval artifact and keeps
-          # it consistent with the bundle list; the kernel's drift guard
+          # ui_extension_names is left unset so the kernel (rushi#13)
+          # fills the manifest [ui_extensions] list at eval time from
+          # each producer's meta.rushi.ext. The kernel's drift guard
           # still verifies each name has a bundled entry dir.
-          rushi.ui_extension_names = builtins.map (u: u.entry) e.extUi;
         };
 
       # Nix attrset siblings do not share scope, so the configured package
