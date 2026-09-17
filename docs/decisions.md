@@ -2,6 +2,20 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Upstream issues filed for session-path ownership (2026-09-17)
+
+The path-resolution chaos (each consumer re-derives the session dir)
+is tracked by two upstream issues. The interim fix stays in the exts
+(the `RUSHI_CWD` anchor under the local pins above).
+
+- `rushi#16`: the kernel hook env should carry absolute `SESSION`
+  and `SESSIONS_ROOT` instead of relying on the inherited cwd.
+- `rushi-tui#14`: session-carrying ext ops (`commands`, `invoke`,
+  `event`) should carry an absolute `session_dir` so exts stop
+  re-deriving paths from `CONFIG` + `RUSHI_CWD`.
+
+Both issues cross-reference each other.
+
 ## goal-ext + simple-english-ext: resolve sessions_root against RUSHI_CWD (2026-09-17)
 
 **Problem.** In the `configured` Nix package, `goal-ext` silently failed to write `goal.json`.
@@ -45,11 +59,11 @@ pins `rushi-goal-mode` to `git+file:///home/tony/programming/rushi-exts/goal-app
 Both locks sit on the fix commits. The `configured` build from these
 pins passes the simulation above.
 
-Later: push both commits to GitHub, flip the inputs back to the
-`github:TonyWu20` refs, and run `nix flake update rushi-goal-mode rushi-simple-english`.
-A cleaner long-term form would have the host send an absolute
-`session_dir` in the session-carrying ops. That is a rushi-tui and
-goal-app protocol change and is deferred.
+The host-sent absolute `session_dir` for the session-carrying ops is
+tracked in `rushi-tui#14`, and the kernel's absolute hook env in
+`rushi#16`. When both land, flip the inputs back to the
+`github:TonyWu20` refs and run `nix flake update rushi-goal-mode
+rushi-simple-english`.
 
 ## rushi#13 landed: consumer side complete, all ext values meta-derived (2026-09)
 
