@@ -65,8 +65,8 @@ the same simulations.
 
 The host-sent absolute `session_dir` for the session-carrying ops is
 tracked in `rushi-tui#14`. The kernel's absolute hook env is tracked
-in `rushi#16`. When both land, the exts can drop the `CONFIG`-based
-path derivation.
+in `rushi#16`. Both are now closed and landed. The exts can drop
+the `CONFIG`-based path derivation in a future pass.
 
 ## rushi#13 landed: consumer side complete, all ext values meta-derived (2026-09)
 
