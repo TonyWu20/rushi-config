@@ -102,7 +102,7 @@
   outputs = inputs @ { self, nixpkgs, fenix, ... }:
     let
       # Explicit system list + genAttrs (the kernel flake's shape).
-      supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
+      supportedSystems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
       pkgLib = nixpkgs.lib;
 
       rushiKernel = inputs."rushi-kernel";
