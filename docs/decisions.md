@@ -2,6 +2,22 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Ext-side issues filed for host-provided session_dir (2026-09-17)
+
+The interim `RUSHI_CWD` fix works, but the exts still re-derive the
+session dir from `CONFIG` + `RUSHI_CWD`. The host now hands over a
+pre-resolved `session_dir` on session-carrying ops (rushi-tui#14).
+Two ext-side issues are open:
+
+- `rushi-goal-mode#2`: goal-ext should consume the host-provided
+  `session_dir` from the commands/invoke/event handlers.
+- `rushi-simple-english#3`: simple-english-ext should consume the
+  host-provided `session_dir` in the row handler.
+
+The `row` op does not yet carry `session_dir` (only commands,
+invoke, and event do). That gap is noted in rushi-simple-english#3
+and is a TUI-side follow-up.
+
 ## Upstream issues filed for session-path ownership (2026-09-17)
 
 The path-resolution chaos (each consumer re-derives the session dir)
