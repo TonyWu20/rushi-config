@@ -119,17 +119,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1789593725,
-        "narHash": "sha256-01VrSwr6S6OoyBmNIoSQ5Kf7rWLBpDwGddZ0Lcuh2Go=",
-        "owner": "TonyWu20",
-        "repo": "rushi-goal-mode",
-        "rev": "a693684e12ef2b66bbc897061006745c45a54a74",
-        "type": "github"
+        "lastModified": 1789651866,
+        "narHash": "sha256-2vIuYgOVQt+l3+tK5w0Id838Y/loSGxIXGYlzCE8fjU=",
+        "ref": "refs/heads/main",
+        "rev": "d7d016da65286de015e87c04384986386d8541f9",
+        "revCount": 15,
+        "type": "git",
+        "url": "file:///home/tony/programming/rushi-exts/goal-app"
       },
       "original": {
-        "owner": "TonyWu20",
-        "repo": "rushi-goal-mode",
-        "type": "github"
+        "type": "git",
+        "url": "file:///home/tony/programming/rushi-exts/goal-app"
       }
     },
     "rushi-kernel": {
@@ -189,17 +189,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1789600586,
-        "narHash": "sha256-EDO8rKsA/QbqiUSkX/97IwVojNSMgyx1yZxVExuq3tU=",
-        "owner": "TonyWu20",
-        "repo": "rushi-simple-english",
-        "rev": "1acdaecbd57467e6524fd5a763e3a6d5029130cb",
-        "type": "github"
+        "lastModified": 1789652024,
+        "narHash": "sha256-+gnZwBSUJErpmia7SdLe1wiNzAvWwItbKc/b2VRq6HU=",
+        "ref": "refs/heads/main",
+        "rev": "217ead2cdb1b01002e71588d817c94fd10819174",
+        "revCount": 28,
+        "type": "git",
+        "url": "file:///home/tony/programming/rushi-simple-english"
       },
       "original": {
-        "owner": "TonyWu20",
-        "repo": "rushi-simple-english",
-        "type": "github"
+        "type": "git",
+        "url": "file:///home/tony/programming/rushi-simple-english"
       }
     },
     "rushi-statusline": {

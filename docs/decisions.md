@@ -2,6 +2,55 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## goal-ext + simple-english-ext: resolve sessions_root against RUSHI_CWD (2026-09-17)
+
+**Problem.** In the `configured` Nix package, `goal-ext` silently failed to write `goal.json`.
+The ext resolved the relative `sessions_root` against the config file's parent directory.
+Under Nix, that parent is the read-only store. The write failed silently.
+No goal file appeared, and the goal hook fired with no goal state.
+
+**Fix.** In `rushi-exts/goal-app/goal-ext/src/main.rs` (commit `d7d016d`) and
+`rushi-simple-english/simple-english-ext/src/main.rs` (commit `5004957`),
+`sessions_root()` now uses `RUSHI_CWD` as the base for relative paths.
+The TUI host exports that env var at ext spawn time.
+When `RUSHI_CWD` is unset (bare dev run), the config directory is used.
+This matches the kernel, which resolves `sessions_root` against the loop cwd.
+
+**Verified.** 25 goal-ext unit tests pass. 5 simple-english-ext tests pass.
+Old-vs-new simulation with the Nix-store config plus `RUSHI_CWD`:
+the old build wrote `goal.json` nowhere (the reported symptom).
+The new build writes `goal.json` and `goal-<id>.json` into
+`$RUSHI_CWD/sessions/<sess>/` and emits the `ext_status` append.
+
+**Ownership of the session dir path.** The session dir is
+`<launch cwd>/sessions/<name>`. The launch cwd is the single authority.
+The kernel owns it, and the kernel exists in both TUI and headless modes.
+
+- Kernel hooks get `SESSION` + `SESSIONS_ROOT` from the kernel.
+  They resolve against the loop cwd. That side was already correct.
+- goal-ext is TUI-only. The host spawns it and relays the launch cwd
+  via `RUSHI_CWD` at spawn plus `cwd` fields on tick/row ops.
+  The host is a relay, not an owner.
+- Headless mode: no host, no goal-ext. `goal.json` is created by the
+  user or a script. The goal-arm hook reads it with the kernel-provided
+  `SESSION`/`SESSIONS_ROOT`. No goal path couples to the TUI host.
+
+**No new env var.** The fix reuses `RUSHI_CWD`, which the host
+already exports. No second channel is added. The user constraint is
+to avoid stacking env vars to make paths work.
+
+**Rollout (option 1: local pin, chosen 2026-09-17).** `flake.nix`
+pins `rushi-goal-mode` to `git+file:///home/tony/programming/rushi-exts/goal-app`.
+`rushi-simple-english` pins to `git+file:///home/tony/programming/rushi-simple-english`.
+Both locks sit on the fix commits. The `configured` build from these
+pins passes the simulation above.
+
+Later: push both commits to GitHub, flip the inputs back to the
+`github:TonyWu20` refs, and run `nix flake update rushi-goal-mode rushi-simple-english`.
+A cleaner long-term form would have the host send an absolute
+`session_dir` in the session-carrying ops. That is a rushi-tui and
+goal-app protocol change and is deferred.
+
 ## rushi#13 landed: consumer side complete, all ext values meta-derived (2026-09)
 
 The kernel merged #13 on main (merge `5be2920`). `lib.mkRushi` now
