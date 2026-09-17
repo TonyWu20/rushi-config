@@ -5,8 +5,8 @@ Session notes on design decisions for this config flake. Newest first.
 ## Upstream issues filed for session-path ownership (2026-09-17)
 
 The path-resolution chaos (each consumer re-derives the session dir)
-is tracked by two upstream issues. The interim fix stays in the exts
-(the `RUSHI_CWD` anchor under the local pins above).
+is tracked by two upstream issues. The interim fix lives in the exts
+(the `RUSHI_CWD` anchor). It now ships on both GitHub remotes.
 
 - `rushi#16`: the kernel hook env should carry absolute `SESSION`
   and `SESSIONS_ROOT` instead of relying on the inherited cwd.
@@ -54,16 +54,19 @@ already exports. No second channel is added. The user constraint is
 to avoid stacking env vars to make paths work.
 
 **Rollout (option 1: local pin, chosen 2026-09-17).** `flake.nix`
-pins `rushi-goal-mode` to `git+file:///home/tony/programming/rushi-exts/goal-app`.
-`rushi-simple-english` pins to `git+file:///home/tony/programming/rushi-simple-english`.
-Both locks sit on the fix commits. The `configured` build from these
-pins passes the simulation above.
+first pinned both ext repos via `git+file://` at the fix commits.
+That local build passed the simulations above.
+
+**Flip-back (2026-09-17, after the push).** Both fix commits are
+now pushed to the github remotes. The flake is back on the
+`github:TonyWu20` refs. The goal-mode lock pins `d7d016d`. The
+simple-english lock pins `ffdb565`. The build from these refs passes
+the same simulations.
 
 The host-sent absolute `session_dir` for the session-carrying ops is
-tracked in `rushi-tui#14`, and the kernel's absolute hook env in
-`rushi#16`. When both land, flip the inputs back to the
-`github:TonyWu20` refs and run `nix flake update rushi-goal-mode
-rushi-simple-english`.
+tracked in `rushi-tui#14`. The kernel's absolute hook env is tracked
+in `rushi#16`. When both land, the exts can drop the `CONFIG`-based
+path derivation.
 
 ## rushi#13 landed: consumer side complete, all ext values meta-derived (2026-09)
 

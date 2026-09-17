@@ -69,14 +69,8 @@
 
     # ── Extension / hook repos (each is its own git repo + flake). ──
     # At hosting time, flip each to a pinned github ref.
-    # Local pin (option 1, 2026-07-13): the RUSHI_CWD sessions_root fix
-    # is committed in the local checkouts but not pushed to github yet.
-    # git+file:// uses the checked-out HEAD and tars only git-tracked
-    # files, so cargo target/ dirs stay out of the store. After pushing
-    # the fix, flip both back to github:TonyWu20/... and run
-    # `nix flake update rushi-goal-mode rushi-simple-english`.
     rushi-goal-mode = {
-      url = "git+file:///home/tony/programming/rushi-exts/goal-app";
+      url = "github:TonyWu20/rushi-goal-mode";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
@@ -86,7 +80,7 @@
       inputs.fenix.follows = "fenix";
     };
     rushi-simple-english = {
-      url = "git+file:///home/tony/programming/rushi-simple-english";
+      url = "github:TonyWu20/rushi-simple-english";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
