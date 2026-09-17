@@ -431,8 +431,8 @@
       nixosModules = {
         rushi = rushiKernel.nixosModules.rushi;
       };
-      homeManagerConfig = {
-        rushi = rushiKernel.homeManagerConfig.rushi;
+      homeManagerModules = {
+        rushi = rushiKernel.homeManagerModules.rushi;
       };
 
       # Dev shell with the configured rushi on PATH.
