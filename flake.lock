@@ -106,11 +106,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789745484,
-        "narHash": "sha256-XJRlJ6RYTp/NtjF8aA6XfqNbEhmQosw0WYwzcKn0rkg=",
+        "lastModified": 1789775755,
+        "narHash": "sha256-htU4Uy8wbxCpUxDPBxQ5pBlx8W8Q32yqvcGZMM0k8PM=",
         "owner": "TonyWu20",
         "repo": "rushi",
-        "rev": "46aaaa4b9547a2015441078f17bcff7c4abf6323",
+        "rev": "b812b5287ec0624233ede521ec4653cbbc912d2f",
         "type": "github"
       },
       "original": {
@@ -152,11 +152,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789732259,
-        "narHash": "sha256-a77YonrpPixi14+r8SEbA1b8OXyZiMa4xDRTnYmGRXY=",
+        "lastModified": 1789776598,
+        "narHash": "sha256-OnTqm7sUquS+L4O1gnLTymQUILQI4P4WGa0vSnHOkwc=",
         "owner": "TonyWu20",
         "repo": "rushi-simple-english",
-        "rev": "547bfb80e5368fc808df333c8419bc3fbfbb2318",
+        "rev": "8c5008794556c9b0898d33bb970f7375d55e8a80",
         "type": "github"
       },
       "original": {
