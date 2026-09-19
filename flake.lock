@@ -83,11 +83,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789741721,
-        "narHash": "sha256-To4O8IAeZfJRbNCNJidad4A/ilO1ddp+PaYBGnQwrgE=",
+        "lastModified": 1789785172,
+        "narHash": "sha256-xpwTBdvxdZ25/jah0nztTMW7pwb9X/T0layIzmmUl4o=",
         "owner": "TonyWu20",
         "repo": "rushi-goal-mode",
-        "rev": "75ffc8c3b5d4309aa0f2a745735585ad09929803",
+        "rev": "20f4eedc5ff6aabf19607630b12fad2fd4b48e94",
         "type": "github"
       },
       "original": {
