@@ -152,11 +152,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789778013,
-        "narHash": "sha256-nJvUv3ZUfIXYbdSPj8i1OAsdfzVu8dOzt/KKzs2mjmw=",
+        "lastModified": 1789851302,
+        "narHash": "sha256-FD5/uPmLIiS/k8C5y84lvxHzRQSaCy25woHEpyjw+kE=",
         "owner": "TonyWu20",
         "repo": "rushi-simple-english",
-        "rev": "651d9b12fc83f007f4e3a9e04bbab70bb117ed24",
+        "rev": "cfcf943664336c2ef608b338aed7e7c450f5d850",
         "type": "github"
       },
       "original": {
