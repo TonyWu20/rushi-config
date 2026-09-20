@@ -335,6 +335,7 @@
             inherit system;
             overlays = [ fenix.overlays.default ];
           };
+          moldStdenv = pkgs.stdenvAdapters.useMoldLinker pkgs.clangStdenv;
           # The declare-once exts table for this system.
           e = exts system;
           # The raw TUI binary from the TUI flake.
@@ -395,6 +396,7 @@
               extUiPkgs
           );
           tuiFull = pkgs.stdenv.mkDerivation {
+            stdenv=moldStdenv;
             pname = "rushi-tui";
             version = "0.1";
             nativeBuildInputs = [ rawTui ] ++ extUiPkgs;
