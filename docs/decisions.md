@@ -2,6 +2,39 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## mermaid ext wired in (2026-09-20)
+
+**Decision.** The standalone `rushi-tui-mermaid-ext` repo is wired
+in with one row in the declare-once `extUi` table.
+It is the `ui_extensions/mermaid` entry, split from the rushi-exts
+monorepo and pushed public on 2026-09-20.
+
+- New flake input `rushi-tui-mermaid-ext`, pointing at
+  `github:TonyWu20/rushi-tui-mermaid-ext`. Its `nixpkgs` and `fenix`
+  follow this flake, like every other ext input.
+- The lock pins commit `44467d3`.
+- The `extUi` row is
+  `{ pkg = mermaidExtFlake.packages.${system}."mermaid-ext"; }`.
+- That row is the single source of truth. It drives
+  `rushi.external_ui_extensions`, the `tui` package bundle, and the
+  `tools.manifest` `[ui_extensions] enabled` list.
+- The manifest list is derived from the producer's `meta.rushi.ext`
+  at eval time (rushi#13). No entry name is re-typed on the
+  consumer side.
+
+**binDir note.** The producer's `ext.toml` declares
+`command = "target/debug/mermaid-ext"`. It mirrors the monorepo's
+`ext-env.sh` debug-build flow. So its flake passes
+`binDir = "target/debug"` to `wrapAsExt`. The release binary then
+lands where the manifest resolves `command` against the entry dir.
+The consumer stays unaware of the layout.
+
+**Verified.** `nix build .#rushi` and `.#tui` pass.
+`ui_extensions/mermaid/` ships `ext.toml` plus the binary under
+`target/debug/`. The `tools.manifest` `[ui_extensions] enabled` list
+gains `mermaid`. The bundled binary renders `fence:mermaid` requests
+into ASCII art.
+
 ## Ext-side issues filed for host-provided session_dir (2026-09-17)
 
 The interim `RUSHI_CWD` fix works, but the exts still re-derive the

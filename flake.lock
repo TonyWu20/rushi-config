@@ -70,7 +70,8 @@
         "rushi-obscura-web-access": "rushi-obscura-web-access",
         "rushi-simple-english": "rushi-simple-english",
         "rushi-statusline": "rushi-statusline",
-        "rushi-tui": "rushi-tui"
+        "rushi-tui": "rushi-tui",
+        "rushi-tui-mermaid-ext": "rushi-tui-mermaid-ext"
       }
     },
     "rushi-goal-mode": {
@@ -211,6 +212,29 @@
       "original": {
         "owner": "TonyWu20",
         "repo": "rushi-tui",
+        "type": "github"
+      }
+    },
+    "rushi-tui-mermaid-ext": {
+      "inputs": {
+        "fenix": [
+          "fenix"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1789865203,
+        "narHash": "sha256-5BtDObXPdD9jgcd7bne0LKDA1LjhkMiINo8M6mI8zBo=",
+        "owner": "TonyWu20",
+        "repo": "rushi-tui-mermaid-ext",
+        "rev": "44467d322b6591f740d4bfa86329bae63a9dc2a7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "TonyWu20",
+        "repo": "rushi-tui-mermaid-ext",
         "type": "github"
       }
     },

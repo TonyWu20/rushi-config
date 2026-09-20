@@ -97,6 +97,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
+    # ── mermaid TUI transform ext (UI-ext repo, Mode B). ──
+    rushi-tui-mermaid-ext = {
+      url = "github:TonyWu20/rushi-tui-mermaid-ext";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
+    };
   };
 
   outputs = inputs @ { self, nixpkgs, fenix, ... }:
@@ -112,6 +118,7 @@
       seFlake = inputs."rushi-simple-english";
       statuslineFlake = inputs."rushi-statusline";
       obscuraWebFlake = inputs."rushi-obscura-web-access";
+      mermaidExtFlake = inputs."rushi-tui-mermaid-ext";
 
       # ── Declare-once ext tables (the single source of truth). ──
       # Each ext is declared exactly once: the package to bundle plus
@@ -151,6 +158,7 @@
           { pkg = goalFlake.packages.${system}."goal-ext"; }
           { pkg = seFlake.packages.${system}."simple-english-ext"; }
           { pkg = statuslineFlake.packages.${system}.statusline; }
+          { pkg = mermaidExtFlake.packages.${system}."mermaid-ext"; }
         ];
         # External hooks: package to bundle + the [[hooks.on]] windows
         # that fire it. The bare command name comes from the producer's
