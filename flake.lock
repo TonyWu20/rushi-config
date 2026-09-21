@@ -225,11 +225,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789865203,
-        "narHash": "sha256-5BtDObXPdD9jgcd7bne0LKDA1LjhkMiINo8M6mI8zBo=",
+        "lastModified": 1789955176,
+        "narHash": "sha256-cp2sfJOFL2gsavIwqiB8uxWjfqEfSRzMPzDlCLrItsA=",
         "owner": "TonyWu20",
         "repo": "rushi-tui-mermaid-ext",
-        "rev": "44467d322b6591f740d4bfa86329bae63a9dc2a7",
+        "rev": "987058ee22a313e16fae1727a947370efad14cf9",
         "type": "github"
       },
       "original": {
