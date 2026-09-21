@@ -168,6 +168,7 @@
           { pkg = goalFlake.packages.${system}."hook-goal-compact"; windows = [ "compact.before" ]; }
           { pkg = goalFlake.packages.${system}."hook-goal-tools"; windows = [ "tool.before" ]; }
           { pkg = goalFlake.packages.${system}."hook-goal-arm"; windows = [ "model.before" ]; }
+          { pkg = goalFlake.packages.${system}."hook-goal-tokens"; windows = [ "model.after" ]; }
           { pkg = nfgFlake.packages.${system}."hook-no-find-grep"; windows = [ "tool.before" ]; }
           { pkg = seFlake.packages.${system}."hook-simple-english"; windows = [ "tool.before" "model.before" "run.idle" ]; }
         ];
