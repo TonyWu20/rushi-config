@@ -2,6 +2,51 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Self-wired TUI entry wired in (2026-09-22)
+
+**Decision.** rushi-tui issue #22 (commits `7e44df7`, `e07d39b`,
+`a3be449`, merge `0996b52`) made the TUI a self-wired front-end.
+The entry binary is now `rushi-tui`. Config discovery uses the
+shared kernel resolver from rushi-common 0.1.3. The loop defaults
+to the Tier-1 `rushi` CLI when no `[loop]` section is set.
+This flake adapted to that change.
+
+- The lock pin moved to `0996b52`. That is the issue #22 merge.
+- `tuiFull` now copies `bin/rushi-tui` from the raw TUI package.
+  The old `bin/tui` path no longer exists upstream.
+  `mainProgram` is `rushi-tui`.
+- The new `rushi-tui` flake output is the self-contained package.
+  `tui` stays as a kept alias for existing run commands.
+- The configured `rushi` package still needs a bridge. The locked
+  kernel `mk-rushi.nix` (rev `04ba2e8`) hardcodes a copy of
+  `$TUI_SRC/bin/tui` into the package. It warns and skips when the
+  file is missing. So a small `rushi-tui-bin-compat` derivation
+  re-exposes the binary under both names. The kernel's `cp`
+  follows the symlink and lands a real `bin/tui`.
+- The `[loop]` config section already matches the self-wired
+  default (`rushi run`, append_session). No config change was
+  needed.
+- No `[tui].binary` key was added. The kernel launcher finds the
+  side-by-side `bin/tui` in the configured package. That path is
+  retired when the kernel retires the `rushi tui` arm (kernel
+  `docs/itches.md`).
+
+**Cutover decision (2026-09-22, user).** Clean cutover: no `bin/tui`
+alias in the post-fix state, and no old-name fallback for pre-#22
+TUI pins. The bridge carries the binary only into the kernel's
+hardcoded `bin/tui` slot. No dual-name transition.
+
+**Retire the bridge.** When kernel rushi#31 lands, drop the
+`rushi-tui-bin-compat` derivation. Pass `rawTui` straight to
+`rushi.tui`. Then `bin/rushi-tui` is the only TUI binary in the
+configured package.
+
+**Verified.** `nix build .#rushi` and `.#rushi-tui` pass. The
+configured package keeps a real `bin/tui` plus `config.toml`. The
+`. #rushi-tui` package ships `bin/rushi-tui` next to its
+`config.toml` and `ui_extensions/`. Its `--help` reports the
+self-wired entry and its `[loop]` section is `rushi run`.
+
 ## mermaid ext wired in (2026-09-20)
 
 **Decision.** The standalone `rushi-tui-mermaid-ext` repo is wired
