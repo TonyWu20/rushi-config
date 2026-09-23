@@ -514,6 +514,7 @@
             overlays = [ fenix.overlays.default ];
           };
           configured = self.packages.${system}.default;
+          rushi-tui = self.packages.${system}."rushi-tui";
           # External hook binaries live in the package's hooks/ dir
           # (lib.mkRushi), not bin/. The devShell mechanism only exposes
           # a buildInput's bin/ dirs on PATH, so a bare hook command name
@@ -540,6 +541,7 @@
           default = pkgs.mkShell {
             buildInputs = [
               configured
+              rushi-tui
               hookPathShim
             ];
             shellHook = ''
