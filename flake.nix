@@ -131,19 +131,23 @@
       mermaidExtFlake = inputs."rushi-tui-mermaid-ext";
 
       # ── Declare-once ext tables (the single source of truth). ──
-      # Each ext is declared exactly once: the package to bundle plus
-      # (for hooks) the pipeline windows that fire it. Every build
-      # list (rushi.external_*) and every runtime value in the generated
-      # config (tool paths, ui-ext names, hook commands) derives from
+      # Each ext is declared exactly once: the package to bundle.
+      # Every build list (rushi.external_*) and every runtime value in
+      # the generated config (tool paths, ui-ext names) derives from
       # these tables in pure Nix, at eval time. To add or drop an ext,
-      # edit one row.
+      # edit one row. Hook window placements live explicitly in the
+      # config module's [hooks] table instead (see that table).
       #
       # Since rushi#13 the kernel reads each producer's meta.rushi at
       # eval time: tools set meta.rushi.entry, UI-exts set
       # meta.rushi.ext, hooks set meta.rushi.bin. extension_tool_paths
-      # and the manifest ui-ext list are derived from those declarations,
-      # and a hook command matching a declared bin is drift-guard-exempt.
-      # So this table no longer re-types the entry dir or the binary name.
+      # and the manifest ui-ext list are derived from those declarations.
+      # For hooks, the bin name doubles as the bundle name: mkRushi
+      # copies each meta.rushi.bin into $out/hooks/, and a bare hook
+      # command matching a declared bin is drift-guard-exempt. Any
+      # bare command the meta does not cover is file-checked against
+      # $out/bin/ and $out/hooks/ at build time, so typos in the
+      # [hooks.defs] table still fail the build.
       exts = system: {
         # Native kernel tools: manifest dir (relative to the package
         # root) + tool name. Drives native_tool_paths and [tools].
@@ -182,96 +186,28 @@
           { pkg = statuslineFlake.packages.${system}.statusline; }
           { pkg = mermaidExtFlake.packages.${system}."mermaid-ext"; }
         ];
-        # External hooks: package to bundle + the pipeline windows
-        # that fire it. The bare command name comes from the producer's
-        # meta.rushi.bin (issue #13), so it is not re-typed here.
+        # External hooks: the packages to bundle into the package's
+        # hooks/ dir (lib.mkRushi). Each ext repo's flake sets
+        # meta.rushi.bin (issue #13), which the kernel's drift guard
+        # reads at eval time. WHERE each hook fires (the pipeline
+        # windows) is placed explicitly in the config module's
+        # [hooks] table, not in this table.
         extHooks = [
-          {
-            pkg = goalFlake.packages.${system}."hook-goal-idle";
-            windows = [ "run.idle" ];
-          }
-          {
-            pkg = goalFlake.packages.${system}."hook-goal-compact";
-            windows = [ "compact.before" ];
-          }
-          {
-            pkg = goalFlake.packages.${system}."hook-goal-tools";
-            windows = [ "tool.before" ];
-          }
-          {
-            pkg = goalFlake.packages.${system}."hook-goal-arm";
-            windows = [ "model.before" ];
-          }
-          {
-            pkg = goalFlake.packages.${system}."hook-goal-tokens";
-            windows = [ "model.after" ];
-          }
-          {
-            pkg = nfgFlake.packages.${system}."hook-no-find-grep";
-            windows = [ "tool.before" ];
-          }
-          {
-            pkg = seFlake.packages.${system}."hook-simple-english";
-            windows = [
-              "tool.before"
-              "model.before"
-              "run.idle"
-            ];
-          }
-        ];
-        # Kernel-shipped hooks (bundled by the kernel in bin/, not by
-        # any external package). No external_hooks entry.
-        kernelHooks = [
-          {
-            command = "harness-hook-compact";
-            windows = [
-              "exhausted.handle"
-              "overflow.resolve"
-            ];
-          }
+          goalFlake.packages.${system}."hook-goal-idle"
+          goalFlake.packages.${system}."hook-goal-compact"
+          goalFlake.packages.${system}."hook-goal-tools"
+          goalFlake.packages.${system}."hook-goal-arm"
+          goalFlake.packages.${system}."hook-goal-tokens"
+          nfgFlake.packages.${system}."hook-no-find-grep"
+          seFlake.packages.${system}."hook-simple-english"
         ];
       };
-      # Pipeline hook model (kernel issue #38): each reg becomes one
-      # named [hooks.defs.<name>] entry, plus one step in the steps
-      # list of every [hooks.pipeline."<window>"] it fires in. Def
-      # names are the bare command names, so nothing is re-typed:
-      # kernel regs type the command, ext regs read the producer's
-      # meta.rushi.bin (issue #13). Step order within a window is
-      # table order; the kernel runs steps in that order, and a later
-      # step may veto an earlier one.
-      hookDefName =
-        r:
-        r.command or r.pkg.meta.rushi.bin;
-      # One [hooks.defs.<name>] entry per hook reg.
-      hookDefs =
-        regs:
-        builtins.listToAttrs (
-          map (r: {
-            name = hookDefName r;
-            value = { command = hookDefName r; };
-          }) regs
-        );
-      # One [hooks.pipeline."<window>"] entry per window: the step
-      # names of every reg that fires in that window, in table order.
-      hookPipeline =
-        regs:
-        let
-          # foldl' calls f as (accumulator, element), so addReg binds
-          # acc first and reg second; the window fold binds acc first
-          # and window second. Appending one reg's step name to each
-          # of its windows preserves table order (regs fold left to
-          # right).
-          addReg =
-            acc:
-            r:
-            builtins.foldl'
-              (a: w: a // { "${w}" = (a.${w} or [ ]) ++ [ (hookDefName r) ]; })
-              acc
-              r.windows;
-        in
-        builtins.mapAttrs
-          (w: steps: { inherit steps; })
-          (builtins.foldl' addReg { } regs);
+      # Hook window placements are NOT derived here. They are written
+      # out explicitly in the config module's [hooks] table (the
+      # defs + pipeline attrsets), one step list per window, so a
+      # reader can see the full pipeline without tracing a fold.
+      # The exts table below only decides which hook packages get
+      # bundled; it carries no window information.
 
       # ── The config module: mirrors config-real.toml (the local dev
       # config). In the Nix version, ext binaries and the TUI are bundled
@@ -318,12 +254,53 @@
               active = {
                 model = "Qwen3.8-27B-NVFP4-RTX5090-DFlash2";
               };
+              # ── Lifecycle hooks (kernel issue #38 pipeline model). ──
+              # Written out explicitly so a reader sees, window by
+              # window, exactly which hooks fire and in what order.
+              # `defs` names each hook; `pipeline` says which windows
+              # fire it. The command is the bare binary name; the
+              # kernel resolves it against the package bin/ (kernel)
+              # and hooks/ (ext) dirs, then PATH. The kernel's drift
+              # guard fails the build if a def name matches no bundled
+              # bin, so a typo or a rename is loud, not silent.
               hooks = {
                 timeout_ms = 30000;
-                # Pipeline model (kernel issue #38): one named def per
-                # hook reg, per-window step lists in table order.
-                defs = hookDefs (e.kernelHooks ++ e.extHooks);
-                pipeline = hookPipeline (e.kernelHooks ++ e.extHooks);
+                # One [hooks.defs.<name>] per hook (8 total).
+                defs = {
+                  # Kernel-shipped (bundled by the kernel in bin/).
+                  "harness-hook-compact".command = "harness-hook-compact";
+                  # Goal-continuation hooks (rushi-goal-mode).
+                  "harness-hook-goal-idle".command = "harness-hook-goal-idle";
+                  "harness-hook-goal-compact".command = "harness-hook-goal-compact";
+                  "harness-hook-goal-tools".command = "harness-hook-goal-tools";
+                  "harness-hook-goal-arm".command = "harness-hook-goal-arm";
+                  "harness-hook-goal-tokens".command = "harness-hook-goal-tokens";
+                  # Linters (no-find-grep, simple-english).
+                  "harness-hook-no-find-grep".command = "harness-hook-no-find-grep";
+                  "harness-hook-simple-english".command = "harness-hook-simple-english";
+                };
+                # One [hooks.pipeline."<window>"] per window, explicit
+                # step lists in fire order. The kernel runs the steps
+                # in this order; a later step may veto an earlier one.
+                pipeline = {
+                  "exhausted.handle".steps = [ "harness-hook-compact" ];
+                  "overflow.resolve".steps = [ "harness-hook-compact" ];
+                  "run.idle".steps = [
+                    "harness-hook-goal-idle"
+                    "harness-hook-simple-english"
+                  ];
+                  "compact.before".steps = [ "harness-hook-goal-compact" ];
+                  "tool.before".steps = [
+                    "harness-hook-goal-tools"
+                    "harness-hook-no-find-grep"
+                    "harness-hook-simple-english"
+                  ];
+                  "model.before".steps = [
+                    "harness-hook-goal-arm"
+                    "harness-hook-simple-english"
+                  ];
+                  "model.after".steps = [ "harness-hook-goal-tokens" ];
+                };
               };
               limits = {
                 bash_timeout_max = 600;
@@ -368,7 +345,7 @@
                 };
               };
             };
-            external_hooks = map (h: h.pkg) e.extHooks;
+            external_hooks = e.extHooks;
             external_tools = map (t: t.pkg) e.extTools;
             external_ui_extensions = map (u: u.pkg) e.extUi;
             tools = map (t: t.name) e.nativeTools;

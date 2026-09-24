@@ -2,6 +2,16 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Explicit `[hooks]` placements replace the derived fold (2026-09-24)
+
+**Supersedes** the derived-pipeline portion of "Hook cutover: `[[hooks.on]]` to defs + pipeline, kernel pin 462043d". The `hookDefs` / `hookPipeline` builders over the exts table were removed in favor of literal attrsets.
+
+**Decision.** `hooks.defs` and `hooks.pipeline` are now literal attrsets in the config module. One def per hook, one ordered steps list per window. `exts.extHooks` now lists only the packages to bundle, and no longer carries `windows`. Each hook binary name is typed once in `hooks.defs`, and the kernel build-time drift guard still cross-checks every bare command against each producer's `meta.rushi.bin`.
+
+**Rationale.** The fold was too abstract to review quickly. Explicit step lists keep window placement visible and editable without helper logic.
+
+**Verified.** Eval passes and both package builds succeed. The two generated config.toml files remain byte-identical under cmp, and the configured package keeps its store path. The generated config still carries 8 defs and 7 pipeline windows, with zero legacy on rows.
+
 ## Goal-tokens hook fires at `model.after` (2026-09-24)
 
 **Decision.** `harness-hook-goal-tokens` fires at `model.after`, not `model.before`. The local dev config had it registered at `model.before`, which was a mistake. Both configs now agree on `model.after`.
