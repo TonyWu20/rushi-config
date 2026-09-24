@@ -262,11 +262,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790175300,
-        "narHash": "sha256-ZRl6h/+09fdr3s1IKy50Eq9Ee7md62EnNSz0bK9mFZQ=",
+        "lastModified": 1790213725,
+        "narHash": "sha256-tnA+krQEMkJhO+kdPwEoqmnKx9VlacQ/zLGjV33CB1s=",
         "owner": "TonyWu20",
         "repo": "rushi-tui",
-        "rev": "bdafe1b1005ac23f75712565110d4786d1c6fb6a",
+        "rev": "8ef2f36d6662ab61660b2b2b75454bfeae17ea13",
         "type": "github"
       },
       "original": {
