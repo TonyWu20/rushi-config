@@ -60,7 +60,7 @@
       # so there is exactly one kernel pin to maintain. `follows`
       # shares the rev structurally (a partial `nix flake update` can
       # no longer drift it). The TUI's `rushi-common` crate is pinned
-      # to the crates.io release 0.1.3 (rushi-tui issue #22), so no
+      # to the crates.io release 0.1.5 (rushi-tui issue #22), so no
       # raw source-tree input is needed.
       inputs.rushi-kernel.follows = "rushi-kernel";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -266,8 +266,14 @@
       # BARE binary names, not local dev paths. The kernel resolves a bare
       # name against the package bin/ dir, then the package hooks/ dir,
       # then PATH.
+      # `toolPaths` (optional): absolute tool-manifest paths for this
+      # config. null (the default) keeps the relative `tools/...`
+      # layout entries, which are valid for a package that bundles
+      # tools/ next to its config. The self-contained TUI package
+      # ships no tools/ dir, so it passes absolute store paths instead
+      # (the Nix derivations' outPaths).
       configModule =
-        { system, tuiPkg }:
+        { system, tuiPkg, toolPaths ? null }:
         {
           config,
           lib,
@@ -279,6 +285,18 @@
           # this system. Every build list and runtime value below derives
           # from `e`.
           e = exts system;
+          # The [paths] tool entries. Relative by default (the configured
+          # package bundles tools/ next to its config, so the relative
+          # entries resolve). The TUI variant passes absolute store
+          # paths because its package ships no tools/ dir.
+          toolPathAttrs =
+            if toolPaths == null then
+              { native_tool_paths = map (t: t.path) e.nativeTools; }
+            else
+              {
+                native_tool_paths = toolPaths.native;
+                extension_tool_paths = toolPaths.ext;
+              };
         in
         {
           rushi = {
@@ -315,8 +333,7 @@
                 max_output_tokens = 65536;
                 reasoning_effort = "xhigh";
               };
-              paths = {
-                native_tool_paths = map (t: t.path) e.nativeTools;
+              paths = toolPathAttrs // {
                 sessions_root = "sessions";
               };
               system_prompt = {
@@ -397,15 +414,40 @@
             '';
           };
           # The fully configured rushi: kernel + TUI + config + exts.
+          # Its config keeps the bundled relative tool paths: the
+          # package ships tools/ next to its config.toml, so the
+          # relative entries resolve inside the package's own closure.
           mk = rushiKernel.lib.mkRushi {
             inherit pkgs;
             modules = [ (configModule { inherit system tuiPkg; }) ];
           };
+          # The raw kernel package (bin/ + tools/ + tools.manifest):
+          # the absolute store home of the native tool manifests.
+          kernelRaw = rushiKernel.packages.${system}.rushi;
+          # Absolute tool paths for the self-contained TUI package's
+          # config. The TUI package ships no tools/ dir (the kernel/TUI
+          # separation is intentional), so its config must point at the
+          # tool manifests' store locations: the raw kernel package's
+          # tools/ for the native set, each ext tool package's outPath
+          # for the external set. Relative entries would dangle against
+          # the TUI package root and the model would start every
+          # session with zero tool schemas.
+          absToolPaths = {
+            native = map (t: "${kernelRaw}/tools/${t.name}") e.nativeTools;
+            ext = map (t: if builtins.isString t.pkg then t.pkg else "${t.pkg}") e.extTools;
+          };
+          # The TUI variant of the generated config: same content as
+          # mk.config, with absolute tool paths instead of the bundled
+          # relative ones.
+          mkTui = rushiKernel.lib.mkRushi {
+            inherit pkgs;
+            modules = [ (configModule { inherit system tuiPkg; toolPaths = absToolPaths; }) ];
+          };
           #
           # ── The self-contained TUI package the flake delivers as
           # `rushi-tui` (the `tui` key is kept as a pre-issue-#22
-          # alias). rawTui + the generated config.toml (byte-identical
-          # to the configured package's, from mk.config) + the bundled
+          # alias). rawTui + the generated TUI config.toml (absolute
+          # tool paths, from mkTui.config) + the bundled
           # ui_extensions/, all laid out side by side. Since rushi-tui
           # dd69b84 (issue #11) the bare binary resolves its config
           # next to itself (<exe_dir>/../config.toml; the shared
@@ -420,7 +462,10 @@
           # Tier-1 `rushi` CLI from PATH. No kernel launcher
           # subcommand is involved.
           extUiPkgs = map (u: u.pkg) e.extUi;
-          tuiConfigFile = pkgs.writeText "rushi-tui-config.toml" mk.config;
+          # Store derivations of the ext tool packages: referenced by
+          # the TUI config's absolute extension_tool_paths.
+          extToolPkgs = map (t: t.pkg) e.extTools;
+          tuiConfigFile = pkgs.writeText "rushi-tui-config.toml" mkTui.config;
           # Copy each bundled ext package into $out/ui_extensions/ (the
           # same layout logic as lib.mkRushi's extUiScript). Since
           # rushi#10 entry-dir names are auto-discovered (each ext.toml
@@ -454,7 +499,11 @@
             stdenv = moldStdenv;
             pname = "rushi-tui";
             version = "0.1";
-            nativeBuildInputs = [ rawTui ] ++ extUiPkgs;
+            # The TUI config's absolute tool paths point into these
+            # store dirs, so they must stay in the package closure or
+            # a GC would leave the config dangling.
+            nativeBuildInputs = [ rawTui ] ++ extUiPkgs ++ [ kernelRaw ]
+            ++ extToolPkgs;
             unpackPhase = "true";
             installPhase = ''
               mkdir -p $out/bin $out/ui_extensions
