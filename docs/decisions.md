@@ -2,6 +2,37 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Absolute store tool paths in both configs, wrapper retired (2026-09-24)
+
+**Supersedes** the same-day `rushi-tui-bin` bin-only wrapper entry.
+That wrapper is now retired.
+
+**Decision.** The configured package config now writes the same
+absolute store tool paths as the TUI package. The two root-level
+config.toml files are byte-identical. `pkgs.buildEnv` dedupes
+identical files when merging roots.
+
+The numtide/devshell devshell can now list both full rushi packages
+side by side. The devshells list the full `rushi-tui` package
+again. The `rushi-tui-bin` output and its derivation are dropped.
+
+**Rationale.** The earlier buildEnv conflicting-subpath failure
+happened because the two config.toml files differed in their tool
+paths. One used relative entries, the other absolute store paths.
+Now they are identical, so nothing conflicts. The bundled tools/
+dir stays in the configured package. That is part of the kernel's
+package layout.
+
+**Verified.** The two root config.toml files diff clean. All six
+absolute tool paths sit in the configured package closure. The
+aggregator devShell and the consumer devshell build with both full
+packages present. `rushi-tui` on PATH resolves to the TUI store
+package. Its `--help` runs against its own config.
+
+**Retire `rushi-tui-bin`.** The bin-only wrapper is now redundant.
+If the two root config.toml files ever diverge again, a merge-safe
+view can be reintroduced.
+
 ## devshell merge conflict: new `rushi-tui-bin` bin-only output (2026-09-24)
 
 **Problem.** A devshell that merges whole package roots cannot combine

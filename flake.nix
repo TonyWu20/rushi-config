@@ -528,35 +528,6 @@
               mainProgram = "rushi-tui";
             };
           };
-          # ── bin/-only view of the self-contained TUI package, for
-          # devshells that merge package roots.
-          # Both `rushi-configured` (the default package) and
-          # `rushi-tui` ship a root-level `config.toml` — that is the
-          # issue-#22 side-by-side layout (bin/<entry> + config.toml +
-          # ui_extensions/; the TUI resolves its config next to the
-          # canonicalized binary). A devshell that merges whole package
-          # roots (the consumer flake's numtide/devshell `packages` env,
-          # whose devshell-dir is a pkgs.buildEnv over all packages)
-          # cannot combine the two: buildEnv fails with "two given paths
-          # contain a conflicting subpath" (the two config.toml files
-          # differ: relative vs absolute tool paths). This wrapper
-          # contributes only a bin/ dir to the merge: a symlink into the
-          # real store package, so the TUI's side-by-side config
-          # resolution still lands on its own absolute-path config.
-          rushiTuiBin = pkgs.stdenv.mkDerivation {
-            pname = "rushi-tui-bin";
-            version = "0.1";
-            nativeBuildInputs = [ tuiFull ];
-            unpackPhase = "true";
-            installPhase = ''
-              mkdir -p $out/bin
-              ln -s ${tuiFull}/bin/rushi-tui $out/bin/rushi-tui
-            '';
-            meta = {
-              description = "bin/ only view of the self-wired TUI entry (devshell merge-safe)";
-              mainProgram = "rushi-tui";
-            };
-          };
         in
         {
           default = mk.package;
@@ -571,9 +542,6 @@
           "rushi-tui" = tuiFull;
           # Pre-issue-#22 name, kept as an alias.
           tui = tuiFull;
-          # bin/ only view of the TUI entry for merge-based devshells
-          # (avoids the root config.toml collision; see the derivation).
-          "rushi-tui-bin" = rushiTuiBin;
         };
     in
     {
@@ -597,17 +565,12 @@
             overlays = [ fenix.overlays.default ];
           };
           configured = self.packages.${system}.default;
-          # The bin/-only view of the self-contained TUI package. The
-          # full `rushi-tui` package cannot be listed next to the
-          # configured one in any devshell that merges whole package
-          # roots (the consumer flake's numtide/devshell env does:
-          # its devshell-dir is a pkgs.buildEnv over all packages, and
-          # both rushi packages ship a root-level config.toml that
-          # buildEnv refuses to combine). This wrapper contributes only
-          # a bin/ dir to any merge, with the binary symlinking into
-          # the store package so its side-by-side config resolution
-          # still lands on its own absolute-tool-path config.
-          rushi-tui-bin = self.packages.${system}."rushi-tui-bin";
+          # The self-contained TUI package. Its root config.toml is
+          # byte-identical to the configured package's (both carry
+          # the absolute store tool paths), so a devshell that merges
+          # whole package roots (the consumer flake's numtide/devshell
+          # env) dedupes the shared files instead of failing on them.
+          rushi-tui = self.packages.${system}."rushi-tui";
           # External hook binaries live in the package's hooks/ dir
           # (lib.mkRushi), not bin/. The devShell mechanism only exposes
           # a buildInput's bin/ dirs on PATH, so a bare hook command name
@@ -634,16 +597,15 @@
           default = pkgs.mkShell {
             packages = [
               configured
-              rushi-tui-bin
+              rushi-tui
               hookPathShim
             ];
             shellHook = ''
               echo "Configured rushi (v${configured.version}) — binaries on PATH:"
               echo "  rushi         configured kernel (bin/ + tools/ + ui_extensions/"
               echo "                   hooks/ + config.toml bundled in the package)"
-              echo "  rushi-tui     self-wired TUI entry (bin/-only view; its"
-              echo "                   config + ui_extensions/ resolve side-by-side"
-              echo "                   from the .#rushi-tui store package)"
+              echo "  rushi-tui     self-wired TUI entry (its config + ui_extensions/"
+              echo "                   resolve side-by-side from the .#rushi-tui store package)"
               echo "  hooks/        external hook binaries on PATH (shim)"
               echo "Run:  rushi run <session>   |   rushi-tui"
             '';
