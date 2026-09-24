@@ -269,9 +269,10 @@
       # `toolPaths` (optional): absolute tool-manifest paths for this
       # config. null (the default) keeps the relative `tools/...`
       # layout entries, which are valid for a package that bundles
-      # tools/ next to its config. The self-contained TUI package
-      # ships no tools/ dir, so it passes absolute store paths instead
-      # (the Nix derivations' outPaths).
+      # tools/ next to its config. Both the configured and the
+      # self-contained TUI package pass absolute store paths (the Nix
+      # derivations' outPaths), so their generated config.toml files
+      # are byte-identical and mergeable in buildEnv-based devshells.
       configModule =
         { system, tuiPkg, toolPaths ? null }:
         {
@@ -413,32 +414,33 @@
               cp ${rawTui}/bin/rushi-tui $out/bin/tui
             '';
           };
-          # The fully configured rushi: kernel + TUI + config + exts.
-          # Its config keeps the bundled relative tool paths: the
-          # package ships tools/ next to its config.toml, so the
-          # relative entries resolve inside the package's own closure.
-          mk = rushiKernel.lib.mkRushi {
-            inherit pkgs;
-            modules = [ (configModule { inherit system tuiPkg; }) ];
-          };
           # The raw kernel package (bin/ + tools/ + tools.manifest):
           # the absolute store home of the native tool manifests.
           kernelRaw = rushiKernel.packages.${system}.rushi;
-          # Absolute tool paths for the self-contained TUI package's
-          # config. The TUI package ships no tools/ dir (the kernel/TUI
-          # separation is intentional), so its config must point at the
-          # tool manifests' store locations: the raw kernel package's
-          # tools/ for the native set, each ext tool package's outPath
-          # for the external set. Relative entries would dangle against
-          # the TUI package root and the model would start every
-          # session with zero tool schemas.
+          # Absolute store tool paths, written into BOTH generated
+          # configs. The raw kernel package's tools/ for the native
+          # set, each ext tool package's outPath for the external set.
+          # Both packages carry those store paths in their closures,
+          # so the entries resolve from anywhere. Because both
+          # configs carry the same absolute paths, the two root-level
+          # config.toml files are byte-identical. A buildEnv-based
+          # devshell merge dedupes identical files, so the two
+          # packages can share a merged shell root.
           absToolPaths = {
             native = map (t: "${kernelRaw}/tools/${t.name}") e.nativeTools;
             ext = map (t: if builtins.isString t.pkg then t.pkg else "${t.pkg}") e.extTools;
           };
-          # The TUI variant of the generated config: same content as
-          # mk.config, with absolute tool paths instead of the bundled
-          # relative ones.
+          # The fully configured rushi: kernel + TUI + config + exts.
+          # Its config carries the same absolute store tool paths as
+          # the TUI variant. The package still bundles tools/ next to
+          # its config.toml (the kernel's layout), but the config
+          # itself points at the store locations.
+          mk = rushiKernel.lib.mkRushi {
+            inherit pkgs;
+            modules = [ (configModule { inherit system tuiPkg; toolPaths = absToolPaths; }) ];
+          };
+          # The TUI variant of the generated config: identical content
+          # to mk.config, since both use the absolute store tool paths.
           mkTui = rushiKernel.lib.mkRushi {
             inherit pkgs;
             modules = [ (configModule { inherit system tuiPkg; toolPaths = absToolPaths; }) ];
