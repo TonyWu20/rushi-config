@@ -132,7 +132,7 @@
 
       # ── Declare-once ext tables (the single source of truth). ──
       # Each ext is declared exactly once: the package to bundle plus
-      # (for hooks) the [[hooks.on]] windows that fire it. Every build
+      # (for hooks) the pipeline windows that fire it. Every build
       # list (rushi.external_*) and every runtime value in the generated
       # config (tool paths, ui-ext names, hook commands) derives from
       # these tables in pure Nix, at eval time. To add or drop an ext,
@@ -182,7 +182,7 @@
           { pkg = statuslineFlake.packages.${system}.statusline; }
           { pkg = mermaidExtFlake.packages.${system}."mermaid-ext"; }
         ];
-        # External hooks: package to bundle + the [[hooks.on]] windows
+        # External hooks: package to bundle + the pipeline windows
         # that fire it. The bare command name comes from the producer's
         # meta.rushi.bin (issue #13), so it is not re-typed here.
         extHooks = [
@@ -231,34 +231,47 @@
           }
         ];
       };
-      # Flatten { command; windows } regs into [[hooks.on]] rows.
-      hookOn =
+      # Pipeline hook model (kernel issue #38): each reg becomes one
+      # named [hooks.defs.<name>] entry, plus one step in the steps
+      # list of every [hooks.pipeline."<window>"] it fires in. Def
+      # names are the bare command names, so nothing is re-typed:
+      # kernel regs type the command, ext regs read the producer's
+      # meta.rushi.bin (issue #13). Step order within a window is
+      # table order; the kernel runs steps in that order, and a later
+      # step may veto an earlier one.
+      hookDefName =
+        r:
+        r.command or r.pkg.meta.rushi.bin;
+      # One [hooks.defs.<name>] entry per hook reg.
+      hookDefs =
         regs:
-        builtins.concatLists (
-          map (
-            r:
-            map (w: {
-              window = w;
-              command = r.command;
-              args = [ ];
-            }) r.windows
-          ) regs
+        builtins.listToAttrs (
+          map (r: {
+            name = hookDefName r;
+            value = { command = hookDefName r; };
+          }) regs
         );
-      # Flatten { pkg; windows } regs into [[hooks.on]] rows. The bare
-      # command is the producer's meta.rushi.bin (issue #13), so the binary
-      # name is read once on the producer side, not re-typed here.
-      extHookOn =
+      # One [hooks.pipeline."<window>"] entry per window: the step
+      # names of every reg that fires in that window, in table order.
+      hookPipeline =
         regs:
-        builtins.concatLists (
-          map (
+        let
+          # foldl' calls f as (accumulator, element), so addReg binds
+          # acc first and reg second; the window fold binds acc first
+          # and window second. Appending one reg's step name to each
+          # of its windows preserves table order (regs fold left to
+          # right).
+          addReg =
+            acc:
             r:
-            map (w: {
-              window = w;
-              command = r.pkg.meta.rushi.bin;
-              args = [ ];
-            }) r.windows
-          ) regs
-        );
+            builtins.foldl'
+              (a: w: a // { "${w}" = (a.${w} or [ ]) ++ [ (hookDefName r) ]; })
+              acc
+              r.windows;
+        in
+        builtins.mapAttrs
+          (w: steps: { inherit steps; })
+          (builtins.foldl' addReg { } regs);
 
       # ── The config module: mirrors config-real.toml (the local dev
       # config). In the Nix version, ext binaries and the TUI are bundled
@@ -306,8 +319,11 @@
                 model = "Qwen3.8-27B-NVFP4-RTX5090-DFlash2";
               };
               hooks = {
-                on = (hookOn e.kernelHooks) ++ (extHookOn e.extHooks);
                 timeout_ms = 30000;
+                # Pipeline model (kernel issue #38): one named def per
+                # hook reg, per-window step lists in table order.
+                defs = hookDefs (e.kernelHooks ++ e.extHooks);
+                pipeline = hookPipeline (e.kernelHooks ++ e.extHooks);
               };
               limits = {
                 bash_timeout_max = 600;

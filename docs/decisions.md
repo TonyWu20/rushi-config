@@ -2,6 +2,18 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Hook cutover: `[[hooks.on]]` to defs + pipeline, kernel pin 462043d (2026-09-24)
+
+**Supersedes** the wire-shape portions of "Hook overlap closed: external hooks declared once" and "Declare-once: paths win over names". The declare-once principle itself is unchanged.
+
+**Decision.** `rushi.config` now emits the kernel issue #38 pipeline hook model. One named def per hook lives in the defs table, keyed by the bare command name. One ordered steps list per window lives in the pipeline table. The per-window step order preserves the legacy list order. The old row flatteners were replaced by the `hookDefs` / `hookPipeline` builders over the same ext table.
+
+**Rationale.** The cutover kernel hard-rejects the legacy `on` key at config load. A pin to the cutover commit alone is still broken, because its Nix defaults leaked the legacy key into every generated config. 462043d is the first usable post-cutover pin. The old kernel silently ignores unknown `hooks` keys, so migrating without the pin bump would stop all hooks. The migration and the pin bump are atomic, and they landed together.
+
+**Pin.** `rushi-kernel` ca70129 to 462043d (`github:TonyWu20/rushi` main).
+
+**Verified.** `nix flake update rushi-kernel` plus `nix build .#rushi` (rc 0). The generated config has 8 defs entries and 7 pipeline windows, no `on` key, and the step order matches the legacy list. `rushi step` under the built binary passes the full config load for this config. The same binary hard-rejects the legacy dev config with the migration hint. The TUI package carries a byte-identical config.
+
 ## Absolute store tool paths in both configs, wrapper retired (2026-09-24)
 
 **Supersedes** the same-day `rushi-tui-bin` bin-only wrapper entry.
