@@ -2,6 +2,14 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Goal-tokens hook fires at `model.after` (2026-09-24)
+
+**Decision.** `harness-hook-goal-tokens` fires at `model.after`, not `model.before`. The local dev config had it registered at `model.before`, which was a mistake. Both configs now agree on `model.after`.
+
+**Rationale.** The user confirmed the token-usage hook belongs after the model turn. The consumer flake's legacy `[[hooks.on]]` shape already used `model.after`, so only the dev config needed the fix.
+
+**Verified.** The dev config pipeline now reads `model.before` = [goal-arm, simple-english] and `model.after` = [goal-tokens]. Config load under the post-cutover kernel passes with no pipeline errors.
+
 ## Hook cutover: `[[hooks.on]]` to defs + pipeline, kernel pin 462043d (2026-09-24)
 
 **Supersedes** the wire-shape portions of "Hook overlap closed: external hooks declared once" and "Declare-once: paths win over names". The declare-once principle itself is unchanged.
