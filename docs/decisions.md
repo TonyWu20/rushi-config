@@ -2,6 +2,61 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## devshell merge conflict: new `rushi-tui-bin` bin-only output (2026-09-24)
+
+**Problem.** A devshell that merges whole package roots cannot combine
+the two rushi packages. Both ship a root-level `config.toml` from the
+issue-#22 side-by-side layout. The binary finds its config next to the
+canonicalized executable.
+
+The two files differ. The configured package writes relative
+`tools/...` paths. The TUI package writes absolute store paths.
+`pkgs.buildEnv` dies on the first conflicting subpath:
+
+```
+pkgs.buildEnv error: two given paths contain a conflicting subpath:
+  `.../rushi-tui-0.1/config.toml' and
+  `.../rushi-configured-0.1/config.toml'
+```
+
+numtide/devshell builds its `devshell-dir` as a `pkgs.buildEnv` over
+all of `devshell.packages`. The consumer shell lists both rushi
+packages, so it fails at build time.
+
+`pkgs.mkShell` with `buildInputs` never hit this. It only puts each
+input `bin/` dir on PATH. It never merges package roots, which is
+why it shadowed the conflict.
+
+In nixpkgs 26.11, `mkShell` with `packages` adds no root merge
+either. It collapses to `nativeBuildInputs`.
+
+**Decision.** Fix the packaging, do not hide it. New flake output
+`rushi-tui-bin` is a bin/-only view of the self-contained TUI
+package. Its `$out/bin/rushi-tui` symlinks into the real `rushi-tui`
+store package.
+
+The shell gains one `bin/rushi-tui` entry in any root merge. No
+root-level `config.toml` is present, so nothing collides. The
+symlink survives buildEnv's symlink-tree merge. The TUI side-by-side
+config resolution still finds the right file.
+
+The aggregator devShell `packages` list now reads
+`[ configured, rushi-tui-bin, hookPathShim ]`. The consumer flake
+devshell swaps `rushi-tui` for
+`rushi-config.packages.${system}."rushi-tui-bin"`. The standalone
+`. #rushi-tui` package is unchanged for `nix run` and `nix build`.
+
+**Retire on kernel #31 cutover.** When the configured package ships
+`bin/rushi-tui` itself, the wrapper is redundant. Drop `rushi-tui-bin`
+and list only the configured package in devshells.
+
+**Verified.** `nix build` of the new output and of the aggregator
+devShell pass. In the activated shell, `command -v rushi-tui`
+resolves through the wrapper to the store binary. `rushi-tui
+--help` runs against its own config. The consumer devshell builds
+its `devshell-dir` merge, and `rushi-tui` on PATH resolves to the
+TUI store package.
+
 ## Self-wired TUI entry wired in (2026-09-22)
 
 **Decision.** rushi-tui issue #22 (commits `7e44df7`, `e07d39b`,
