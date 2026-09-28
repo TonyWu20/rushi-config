@@ -225,9 +225,6 @@
       configModule =
         { system, tuiPkg, toolPaths ? null }:
         {
-          config,
-          lib,
-          pkgs,
           ...
         }:
         let
