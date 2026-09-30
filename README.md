@@ -68,10 +68,12 @@ Notes:
 
 ## Config
 
-The `configModule` in `flake.nix` mirrors `config-real.toml` from the
-kernel checkout. Hook `command` fields are bare binary names. The
-hook binaries are bundled into `$out/hooks` by `lib.mkRushi`, and the
-kernel resolves them from there at runtime.
+The `configModule` in `config-module.nix` (imported by `flake.nix`)
+mirrors `config-real.toml` from the kernel checkout. The declare-once
+`exts` table lives in `config-module.nix` as well. Hook `command`
+fields are bare binary names. The hook binaries are bundled into
+`$out/hooks` by `lib.mkRushi`, and the kernel resolves them from
+there at runtime.
 
 ## Troubleshooting: external hooks not firing
 

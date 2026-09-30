@@ -2,6 +2,16 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Extract the config module into config-module.nix (2026-09-30)
+
+**Decision.** The `exts` declare-once table and the `configModule` definition moved from `flake.nix` to `config-module.nix`. `flake.nix` imports that file with the six ext flake aliases and re-binds `exts` and `configModule`. The `forSystem` build section is unchanged.
+
+**Rationale.** About 225 lines of config text (ext table, hooks table, model, limits, and TUI settings) hid the build graph inside `flake.nix`. The split keeps the main flake a short build-graph view. The config content itself is unchanged.
+
+**Verified.** `nix eval .#packages.x86_64-linux.default` gives the same store path before and after the split (`/nix/store/85552xb49cy4rd5wrc51lwrfviljd8fy-rushi-full-0.1`), so the generated config is byte-for-byte identical. A mutation test (changed model id in `config-module.nix`) changed the store path. Restoring the file brought the original path back. `nix-instantiate --parse` passes on both files. All five package outputs evaluate to valid store paths.
+
+**Note.** `config-module.nix` must stay Git-tracked. Nix sees the flake source as the Git tree, and an untracked file is invisible to flake evaluation.
+
 ## Ship the combined kernel+TUI package as the default (2026-11-08)
 
 **Decision.** The flake ships a combined package `rushi-full`: the configured kernel and the self-wired TUI in one store object. `default` and the `rushi-full` alias point to it. The kernel-only package stays as `rushi`. The TUI-only package stays as `rushi-tui`.
