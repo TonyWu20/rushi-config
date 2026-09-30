@@ -4,8 +4,9 @@
 # tools/hooks/UI-extensions as a single usable `rushi` package. The user
 # runs it like pi-config:
 #
-#   nix build .#rushi       # build the configured rushi package
-#   nix run   .#rushi       # run rushi from the configured package
+#   nix build .#            # build the combined kernel + TUI package
+#   nix build .#rushi       # the configured kernel package alone
+#   nix run   .#rushi       # run rushi from the configured kernel
 #
 # The kernel flake (rushi-kernel) provides `lib.mkRushi`; this flake feeds
 # it NixOS-style modules that declare the model, limits, tools, and the
@@ -518,9 +519,58 @@
               mainProgram = "rushi-tui";
             };
           };
+          # ── The combined package: configured kernel + self-wired
+          # TUI in one store object. One import (or this flake's
+          # devShell) puts the version-locked `rushi` + `rushi-tui`
+          # pair on PATH, so the TUI can no longer drive an ambient or
+          # stale kernel resolved from PATH. The two inputs' root
+          # config.toml files are byte-identical (one evaluation, same
+          # absolute store tool paths) and their ui_extensions/ dirs
+          # bundle the same ext packages, so overlaying the TUI onto
+          # the kernel package merges without conflict.
+          rushiFull = pkgs.stdenv.mkDerivation {
+            pname = "rushi-full";
+            version = "0.1";
+            # A pure merge: no compilation. unpackPhase is a no-op, so
+            # installPhase alone lays out $out.
+            nativeBuildInputs = [ mk.package tuiFull ];
+            unpackPhase = "true";
+            installPhase = ''
+              mkdir -p $out
+              # Configured kernel first: bin/rushi + the native tool
+              # wrappers + tools/ + tools.manifest + hooks/ +
+              # config.toml + ui_extensions/.
+              cp -a ${mk.package}/. $out/
+              # Store inputs are read-only, so the kernel files above
+              # land in $out read-only. Make them writable so the TUI
+              # overlay below can overwrite the shared files
+              # (config.toml, ui_extensions/). Nix normalizes store
+              # permissions again at fixup.
+              chmod -R u+w $out
+              # Self-wired TUI on top: bin/rushi-tui. Its config.toml
+              # and ui_extensions/ are identical to the kernel
+              # package's, so the overlay dedupes instead of
+              # conflicting.
+              cp -a ${tuiFull}/. $out/
+              test -x $out/bin/rushi || { echo "ERROR: rushi kernel binary missing"; exit 1; }
+              test -x $out/bin/rushi-tui || { echo "ERROR: rushi-tui binary missing"; exit 1; }
+            '';
+            meta = {
+              description = "Combined rushi: configured kernel + self-wired TUI in one package";
+              mainProgram = "rushi";
+            };
+          };
         in
         {
-          default = mk.package;
+          # The combined kernel + TUI package is the default, so a
+          # single import (packages.<system>.default) always delivers
+          # the version-locked pair.
+          default = rushiFull;
+          # Explicit alias for the combined package.
+          "rushi-full" = rushiFull;
+          # The configured kernel alone (bin/ + tools/ + hooks/ +
+          # config.toml + ui_extensions/), for consumers that only
+          # run the CLI loop.
           rushi = mk.package;
           # Raw kernel binary (no user config), for `rushi setup` / dev.
           rushi-kernel = rushiKernel.packages.${system}.rushi;
@@ -546,7 +596,13 @@
         rushi = rushiKernel.homeManagerModules.rushi;
       };
 
-      # Dev shell with the configured rushi on PATH.
+      # Dev shell with the combined rushi on PATH. One package (the
+      # combined kernel + TUI, the flake's `default`) puts both the
+      # `rushi` loop and the `rushi-tui` front-end on PATH from the
+      # same store object, so the pair can no longer skew. The
+      # external hook binaries live in the package's hooks/ dir, not
+      # bin/; the kernel resolves bare hook names against
+      # <exe_dir>/../hooks/, so a fresh build needs no PATH shim.
       devShells = pkgLib.genAttrs supportedSystems (
         system:
         let
@@ -554,49 +610,16 @@
             inherit system;
             overlays = [ fenix.overlays.default ];
           };
-          configured = self.packages.${system}.default;
-          # The self-contained TUI package. Its root config.toml is
-          # byte-identical to the configured package's (both carry
-          # the absolute store tool paths), so a devshell that merges
-          # whole package roots (the consumer flake's numtide/devshell
-          # env) dedupes the shared files instead of failing on them.
-          rushi-tui = self.packages.${system}."rushi-tui";
-          # External hook binaries live in the package's hooks/ dir
-          # (lib.mkRushi), not bin/. The devShell mechanism only exposes
-          # a buildInput's bin/ dirs on PATH, so a bare hook command name
-          # is not found on PATH. The current kernel resolves bare names
-          # against <exe_dir>/../hooks/ when it runs from the package,
-          # but a binary built before that kernel fix (an older store
-          # build) still needs the PATH entry. This shim re-exposes the
-          # package's hooks/ as a bin/ dir so the devShell mechanism
-          # picks it up.
-          hookPathShim = pkgs.stdenv.mkDerivation {
-            pname = "rushi-hook-shim";
-            version = "0.1";
-            nativeBuildInputs = [ configured ];
-            unpackPhase = "true";
-            installPhase = ''
-              mkdir -p $out/bin
-              if [ -d ${configured}/hooks ]; then
-                cp -rL ${configured}/hooks/. $out/bin/
-              fi
-            '';
-          };
+          full = self.packages.${system}.default;
         in
         {
           default = pkgs.mkShell {
-            packages = [
-              configured
-              rushi-tui
-              hookPathShim
-            ];
+            packages = [ full ];
             shellHook = ''
-              echo "Configured rushi (v${configured.version}) — binaries on PATH:"
-              echo "  rushi         configured kernel (bin/ + tools/ + ui_extensions/"
-              echo "                   hooks/ + config.toml bundled in the package)"
-              echo "  rushi-tui     self-wired TUI entry (its config + ui_extensions/"
-              echo "                   resolve side-by-side from the .#rushi-tui store package)"
-              echo "  hooks/        external hook binaries on PATH (shim)"
+              echo "Configured rushi (v${full.version}) — binaries on PATH:"
+              echo "  rushi         configured kernel (bin/ + tools/ + hooks/"
+              echo "                   config.toml + ui_extensions/ in the package)"
+              echo "  rushi-tui     self-wired TUI entry, same store object"
               echo "Run:  rushi run <session>   |   rushi-tui"
             '';
           };

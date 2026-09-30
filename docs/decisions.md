@@ -2,6 +2,16 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Ship the combined kernel+TUI package as the default (2026-11-08)
+
+**Decision.** The flake ships a combined package `rushi-full`: the configured kernel and the self-wired TUI in one store object. `default` and the `rushi-full` alias point to it. The kernel-only package stays as `rushi`. The TUI-only package stays as `rushi-tui`.
+
+**Rationale.** Two independent store objects let a consumer import the TUI alone. The bare `rushi` name then resolved from PATH to a stale configured build. The TUI ran that stale kernel. Session logs kept the stale `decision`/`payload` hook fields, not the migrated `blocked_calls`.
+
+**Verified.** `nix build` of the `rushi-full` output passes. The store object holds `bin/rushi`, `bin/rushi-tui`, `config.toml`, `hooks/`, `tools/` with `tools.manifest`, and `ui_extensions/`. The kernel binary matches the configured package byte for byte, and the TUI binary matches the `rushi-tui` package. The bundled no-find-grep hook emits `blocked_calls`. In the devShell, both PATH binaries resolve into the same `rushi-full` store object.
+
+**Consumer note.** A consumer that imports `rushi-config.packages.${system}.default` gets the combined package after a relock. A consumer that listed both `default` and `rushi-tui` can drop the `rushi-tui` line.
+
 ## Explicit `[hooks]` placements replace the derived fold (2026-09-24)
 
 **Supersedes** the derived-pipeline portion of "Hook cutover: `[[hooks.on]]` to defs + pipeline, kernel pin 462043d". The `hookDefs` / `hookPipeline` builders over the exts table were removed in favor of literal attrsets.
