@@ -7,6 +7,7 @@
 #   nix build .#            # build the combined kernel + TUI package
 #   nix build .#rushi       # the configured kernel package alone
 #   nix run   .#rushi       # run rushi from the configured kernel
+#   nix run   .#rushi-bash  # the configured kernel, bash tool only
 #
 # The kernel flake (rushi-kernel) provides `lib.mkRushi`; this flake feeds
 # it NixOS-style modules that declare the model, limits, tools, and the
@@ -132,9 +133,11 @@
       mermaidExtFlake = inputs."rushi-tui-mermaid-ext";
 
       # ── The config side (exts table + config module) was extracted to
-      # config-module.nix. It is imported with the six ext flake aliases
-      # and its exts + configModule are re-bound here, so the forSystem
-      # build section below stays a concise view of the build graph.
+      # config-module.nix (the exts and hooks tables live in config/).
+      # It is imported with the six ext flake aliases and its exts,
+      # nativeToolNames, and configModule are re-bound here, so the
+      # forSystem build section below stays a concise view of the build
+      # graph.
       cfg = import ./config-module.nix {
         inherit
           goalFlake
@@ -146,6 +149,7 @@
           ;
       };
       exts = cfg.exts;
+      nativeToolNames = cfg.nativeToolNames;
       configModule = cfg.configModule;
 
       # Nix attrset siblings do not share scope, so the configured package
@@ -208,10 +212,12 @@
           # config.toml files are byte-identical. A buildEnv-based
           # devshell merge dedupes identical files, so the two
           # packages can share a merged shell root.
-          absToolPaths = {
-            native = map (t: "${kernelRaw}/tools/${t.name}") e.nativeTools;
-            ext = map (t: if builtins.isString t.pkg then t.pkg else "${t.pkg}") e.extTools;
+          absToolPathsFor = names:
+          {
+            native = map (n: "${kernelRaw}/tools/${n}") names;
+            ext = map (t: if builtins.isString t then t else "${t}") e.extTools;
           };
+          absToolPaths = absToolPathsFor nativeToolNames;
           # The fully configured rushi: kernel + TUI + config + exts.
           # Its config carries the same absolute store tool paths as
           # the TUI variant. The package still bundles tools/ next to
@@ -237,6 +243,22 @@
               })
             ];
           };
+
+          # The lean variant: the configured kernel with only the bash
+          # native tool. The model, limits, ext tools, hooks, and UI
+          # layer are the same as `rushi`. The [tools] manifest and
+          # native_tool_paths carry only bash, so the agent sees one
+          # native tool.
+          mkLean = rushiKernel.lib.mkRushi {
+            inherit pkgs;
+            modules = [
+              (configModule {
+                inherit system tuiPkg;
+                toolNames = [ "bash" ];
+                toolPaths = absToolPathsFor [ "bash" ];
+              })
+            ];
+          };
           #
           # ── The self-contained TUI package the flake delivers as
           # `rushi-tui` (the `tui` key is kept as a pre-issue-#22
@@ -255,10 +277,10 @@
           # `rushi run <session>`); otherwise it falls back to the
           # Tier-1 `rushi` CLI from PATH. No kernel launcher
           # subcommand is involved.
-          extUiPkgs = map (u: u.pkg) e.extUi;
+          extUiPkgs = e.extUi;
           # Store derivations of the ext tool packages: referenced by
           # the TUI config's absolute extension_tool_paths.
-          extToolPkgs = map (t: t.pkg) e.extTools;
+          extToolPkgs = e.extTools;
           tuiConfigFile = pkgs.writeText "rushi-tui-config.toml" mkTui.config;
           # Copy each bundled ext package into $out/ui_extensions/ (the
           # same layout logic as lib.mkRushi's extUiScript). Since
@@ -375,6 +397,11 @@
           # config.toml + ui_extensions/), for consumers that only
           # run the CLI loop.
           rushi = mk.package;
+          # The configured kernel with only the bash native tool: a
+          # lean version of `rushi`. Same model, limits, ext tools,
+          # hooks, and UI layer; the [tools] manifest and
+          # native_tool_paths carry only bash.
+          "rushi-bash" = mkLean.package;
           # Raw kernel binary (no user config), for `rushi setup` / dev.
           rushi-kernel = rushiKernel.packages.${system}.rushi;
           # The self-contained TUI front-end (self-wired entry,

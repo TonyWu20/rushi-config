@@ -2,6 +2,41 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Tool-set variants and the config table split (2026-09-30)
+
+**Decision.** The `exts` table moved to `config/exts.nix`. The `[hooks]`
+defs and pipeline tables moved to `config/hook-windows.nix`. The
+`nativeToolNames` catalog moved to the top of `config-module.nix`.
+
+`configModule` gained a `toolNames` parameter. It sets the native tool
+set to expose. The default (null) keeps the full catalog.
+
+A new flake output `rushi-bash` builds the configured kernel with
+`toolNames = [ "bash" ]`. Its `tools.manifest` and `native_tool_paths`
+carry only the bash tool.
+
+**Rationale.** The old `config-module.nix` mixed the exts table, the
+hooks tables, and the config body in one file. Each table now has one
+file with one job.
+
+The `toolNames` parameter makes the tool set a direct input to the
+module. A lean variant is a one-line flake change.
+
+**Verified.** All five pre-existing outputs keep their store paths.
+The generated configs are unchanged. The `.#rushi-bash` build passes.
+
+- Store paths: `rushi-full` 73lv8n2d, `rushi` k7sbc82n, `rushi-tui` lxivqk61, `rushi-kernel` cifhx685
+- The `native_tool_paths` line holds one entry. The `[tools] enabled` list holds `[ "bash" ]`
+- The referenced `tools/bash` store dir is in the package closure
+
+**Note.** `config/exts.nix` and `config/hook-windows.nix` must stay
+Git-tracked. Nix sees the flake source as the Git tree. Untracked files
+are invisible to flake evaluation.
+
+**Open.** The output name `rushi-bash` is a working name. The lean
+package is the configured kernel, not the combined TUI package. No
+lean TUI variant exists yet.
+
 ## Extract the config module into config-module.nix (2026-09-30)
 
 **Decision.** The `exts` declare-once table and the `configModule` definition moved from `flake.nix` to `config-module.nix`. `flake.nix` imports that file with the six ext flake aliases and re-binds `exts` and `configModule`. The `forSystem` build section is unchanged.

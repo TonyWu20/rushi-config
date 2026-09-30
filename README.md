@@ -10,6 +10,7 @@ and calls the kernel's `lib.mkRushi` to produce one runnable package.
 
     nix build .#rushi    # build the fully configured package
     nix run   .#rushi    # run the configured rushi
+    nix run   .#rushi-bash  # configured kernel with only the bash tool
     nix run   .#rushi-tui   # run the self-contained TUI (config + exts)
     nix run   .#tui         # alias of .#rushi-tui
     nix develop          # dev shell with the configured rushi on PATH
@@ -70,10 +71,20 @@ Notes:
 
 The `configModule` in `config-module.nix` (imported by `flake.nix`)
 mirrors `config-real.toml` from the kernel checkout. The declare-once
-`exts` table lives in `config-module.nix` as well. Hook `command`
+`exts` table lives in `config/exts.nix`. The `[hooks]` defs and
+pipeline tables live in `config/hook-windows.nix`. Hook `command`
 fields are bare binary names. The hook binaries are bundled into
 `$out/hooks` by `lib.mkRushi`, and the kernel resolves them from
 there at runtime.
+
+## Tool-set variants
+
+`configModule` takes a `toolNames` parameter. The default (null)
+uses the full native catalog from `config-module.nix`. The
+`rushi-bash` output passes `[ "bash" ]` to `toolNames`. That
+package's `tools.manifest` and `native_tool_paths` carry only
+the bash tool. The ext tools, hooks, and UI extensions are
+unchanged.
 
 ## Troubleshooting: external hooks not firing
 
