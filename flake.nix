@@ -63,7 +63,7 @@
       # no longer drift it). The TUI's `rushi-common` crate is pinned
       # to the crates.io release 0.1.5 (rushi-tui issue #22), so no
       # raw source-tree input is needed.
-      inputs.rushi-kernel.follows = "rushi-kernel";
+      inputs.rushi-config.follows = "";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
@@ -136,7 +136,14 @@
       # and its exts + configModule are re-bound here, so the forSystem
       # build section below stays a concise view of the build graph.
       cfg = import ./config-module.nix {
-        inherit goalFlake nfgFlake seFlake statuslineFlake obscuraWebFlake mermaidExtFlake;
+        inherit
+          goalFlake
+          nfgFlake
+          seFlake
+          statuslineFlake
+          obscuraWebFlake
+          mermaidExtFlake
+          ;
       };
       exts = cfg.exts;
       configModule = cfg.configModule;
@@ -212,13 +219,23 @@
           # itself points at the store locations.
           mk = rushiKernel.lib.mkRushi {
             inherit pkgs;
-            modules = [ (configModule { inherit system tuiPkg; toolPaths = absToolPaths; }) ];
+            modules = [
+              (configModule {
+                inherit system tuiPkg;
+                toolPaths = absToolPaths;
+              })
+            ];
           };
           # The TUI variant of the generated config: identical content
           # to mk.config, since both use the absolute store tool paths.
           mkTui = rushiKernel.lib.mkRushi {
             inherit pkgs;
-            modules = [ (configModule { inherit system tuiPkg; toolPaths = absToolPaths; }) ];
+            modules = [
+              (configModule {
+                inherit system tuiPkg;
+                toolPaths = absToolPaths;
+              })
+            ];
           };
           #
           # ── The self-contained TUI package the flake delivers as
@@ -279,8 +296,7 @@
             # The TUI config's absolute tool paths point into these
             # store dirs, so they must stay in the package closure or
             # a GC would leave the config dangling.
-            nativeBuildInputs = [ rawTui ] ++ extUiPkgs ++ [ kernelRaw ]
-            ++ extToolPkgs;
+            nativeBuildInputs = [ rawTui ] ++ extUiPkgs ++ [ kernelRaw ] ++ extToolPkgs;
             unpackPhase = "true";
             installPhase = ''
               mkdir -p $out/bin $out/ui_extensions
@@ -317,7 +333,10 @@
             version = "0.1";
             # A pure merge: no compilation. unpackPhase is a no-op, so
             # installPhase alone lays out $out.
-            nativeBuildInputs = [ mk.package tuiFull ];
+            nativeBuildInputs = [
+              mk.package
+              tuiFull
+            ];
             unpackPhase = "true";
             installPhase = ''
               mkdir -p $out
