@@ -260,11 +260,11 @@
         "rushi-config": []
       },
       "locked": {
-        "lastModified": 1790766902,
-        "narHash": "sha256-o6mENblqv7xej8EsVn4ndy9DOyU+Fn5dT3MPNDwhEBE=",
+        "lastModified": 1790772343,
+        "narHash": "sha256-zs7FyddNbe+gyno6msTEl+OXzp7iSMPTcdjCukN7uws=",
         "owner": "TonyWu20",
         "repo": "rushi-tui",
-        "rev": "ef5d931dfadce2f9a49ebf54a1098ca0b41ddc68",
+        "rev": "e66a604b3b2049c57d36c18e563793b5217ff9dc",
         "type": "github"
       },
       "original": {
