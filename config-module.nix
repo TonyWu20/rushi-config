@@ -126,7 +126,7 @@ in
               api_key_env = "LLAMA_API_KEY";
               base_url = "http://127.0.0.1:30000";
               context_tokens = 262144;
-              model_id = "Qwen3.8-27B-NVFP4-RTX5090-DFlash2";
+              model_id = "Qwen3.8-27B-NVFP4-RTX5090-v2";
               vision = true;
             };
             api = "responses";
