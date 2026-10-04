@@ -2,6 +2,53 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Ship the headless goal seeder in `rushi-full` (2026-10-04)
+
+**Decision.** `rushi-full` now bundles the `rushi-goal` binary from the
+`rushi-goal-mode` input. The goal-mode pin moved from `d6a10ab` to
+`9901ddf` (issue #8). The binary lands at `bin/rushi-goal` next to
+`bin/rushi` and `bin/rushi-tui`.
+
+**Rationale.** A headless setup script calls `rushi-goal <session>
+<goal>` before it execs `rushi run <session>`. The seeder resolves
+the config by the kernel ladder and writes the session goal files,
+so the seeder and the loop agree. The combined package keeps the
+pair version-locked in one store object.
+
+**Verified.** `nix build .#rushi-full` passes. The store object
+holds `bin/rushi`, `bin/rushi-tui`, and `bin/rushi-goal`. The
+packaged `rushi-goal` seeded a scratch session and wrote
+`goal.json` plus `goal-<id>.json` under the CWD sessions root.
+Store path: `rushi-full` `3qks9a2` at the `9901ddf` pin.
+
+**Note.** `rushi-goal` is a bare user binary, not a loop tool and
+not an ext, so the `exts` table does not list it. The merge
+installPhase makes `bin/` writable again after the TUI overlay,
+because `cp -a` reapplies the source dir's read-only mode. The
+`flake.nix` and `flake.lock` pair is atomic: a new flake.nix on
+the old lock fails eval with a missing `rushi-goal` attribute.
+Commit the pair together.
+
+## Retire the non-Nix `out/` layout (2026-10-04)
+
+**Decision.** Delete the stale `out/` directory in the repo root.
+Add `out/` to `.gitignore`. Retire the non-Nix install flow: this
+is a private repo, and the nix flake is the only distribution path.
+
+**Rationale.** `out/` held a copied configured-kernel package
+layout from before the TUI merge and the goal seeder. It shadowed
+the real `nix build` output, so inspecting `out/` looked like the
+default package lost the TUI and the seeder. Nothing regenerates
+it now that the non-Nix install is retired.
+
+**Verified.** No derivation in the build graph takes the flake
+source (with `out/`) as an input, so the deletion changes no store
+path. `git status` is clean after the commit. `nix build .#`
+still resolves the default to `rushi-full`.
+
+**Note.** If a non-Nix install flow returns, re-add an `out/`
+builder and drop the ignore line.
+
 ## Tool-set variants and the config table split (2026-09-30)
 
 **Decision.** The `exts` table moved to `config/exts.nix`. The `[hooks]`

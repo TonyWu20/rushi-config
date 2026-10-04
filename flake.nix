@@ -203,6 +203,11 @@
           # The raw kernel package (bin/ + tools/ + tools.manifest):
           # the absolute store home of the native tool manifests.
           kernelRaw = rushiKernel.packages.${system}.rushi;
+          # The headless goal seeder (rushi-goal-mode issue #8): a bare
+          # binary, not a loop tool and not an ext. A user setup
+          # script calls it once to arm the session goal files before
+          # a headless `rushi run` starts.
+          rushiGoalPkg = goalFlake.packages.${system}."rushi-goal";
           # Absolute store tool paths, written into BOTH generated
           # configs. The raw kernel package's tools/ for the native
           # set, each ext tool package's outPath for the external set.
@@ -342,14 +347,15 @@
             };
           };
           # ── The combined package: configured kernel + self-wired
-          # TUI in one store object. One import (or this flake's
-          # devShell) puts the version-locked `rushi` + `rushi-tui`
-          # pair on PATH, so the TUI can no longer drive an ambient or
-          # stale kernel resolved from PATH. The two inputs' root
-          # config.toml files are byte-identical (one evaluation, same
-          # absolute store tool paths) and their ui_extensions/ dirs
-          # bundle the same ext packages, so overlaying the TUI onto
-          # the kernel package merges without conflict.
+          # TUI + headless goal seeder in one store object. One
+          # import (or this flake's devShell) puts the version-locked
+          # `rushi` + `rushi-tui` + `rushi-goal` set on PATH, so the
+          # TUI can no longer drive an ambient or stale kernel
+          # resolved from PATH. The two inputs' root config.toml
+          # files are byte-identical (one evaluation, same absolute
+          # store tool paths) and their ui_extensions/ dirs bundle
+          # the same ext packages, so overlaying the TUI onto the
+          # kernel package merges without conflict.
           rushiFull = pkgs.stdenv.mkDerivation {
             pname = "rushi-full";
             version = "0.1";
@@ -358,6 +364,7 @@
             nativeBuildInputs = [
               mk.package
               tuiFull
+              rushiGoalPkg
             ];
             unpackPhase = "true";
             installPhase = ''
@@ -377,19 +384,32 @@
               # package's, so the overlay dedupes instead of
               # conflicting.
               cp -a ${tuiFull}/. $out/
+              # `cp -a` re-applies each source dir's mode to the
+              # existing dir, so bin/ is read-only again. Re-open it
+              # for the goal-seeder copy below.
+              chmod -R u+w $out
+              # Headless goal seeder next to the loop binaries:
+              # bin/rushi-goal. It resolves config by the kernel
+              # ladder, so the side-by-side step (<exe_dir>/../
+              # config.toml) lands on this package's root config.toml.
+              # A new path: no overlay conflict.
+              cp ${rushiGoalPkg}/bin/rushi-goal $out/bin/rushi-goal
+              chmod +x $out/bin/rushi-goal
               test -x $out/bin/rushi || { echo "ERROR: rushi kernel binary missing"; exit 1; }
               test -x $out/bin/rushi-tui || { echo "ERROR: rushi-tui binary missing"; exit 1; }
+              test -x $out/bin/rushi-goal || { echo "ERROR: rushi-goal binary missing"; exit 1; }
             '';
             meta = {
-              description = "Combined rushi: configured kernel + self-wired TUI in one package";
+              description = "Combined rushi: configured kernel + self-wired TUI + headless goal seeder in one package";
               mainProgram = "rushi";
             };
           };
         in
         {
-          # The combined kernel + TUI package is the default, so a
-          # single import (packages.<system>.default) always delivers
-          # the version-locked pair.
+          # The combined kernel + TUI + goal-seeder package is the
+          # default, so a single import
+          # (packages.<system>.default) always delivers the
+          # version-locked set (rushi + rushi-tui + rushi-goal).
           default = rushiFull;
           # Explicit alias for the combined package.
           "rushi-full" = rushiFull;
@@ -450,7 +470,9 @@
               echo "  rushi         configured kernel (bin/ + tools/ + hooks/"
               echo "                   config.toml + ui_extensions/ in the package)"
               echo "  rushi-tui     self-wired TUI entry, same store object"
+              echo "  rushi-goal    headless goal seeder, same store object"
               echo "Run:  rushi run <session>   |   rushi-tui"
+              echo "Headless: rushi-goal <session> <goal> && rushi run <session>"
             '';
           };
         }

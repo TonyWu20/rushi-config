@@ -3,3 +3,4 @@ result
 *.log
 sessions/
 result-*
+out/
