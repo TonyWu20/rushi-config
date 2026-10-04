@@ -18,6 +18,7 @@
   defs = {
     # Kernel-shipped (bundled by the kernel in bin/).
     "harness-hook-compact".command = "harness-hook-compact";
+    "harness-hook-no-long-sleep".command = "harness-hook-no-long-sleep";
     # Goal-continuation hooks (rushi-goal-mode).
     "harness-hook-goal-idle".command = "harness-hook-goal-idle";
     "harness-hook-goal-compact".command = "harness-hook-goal-compact";
@@ -43,6 +44,7 @@
     "tool.before".steps = [
       "harness-hook-goal-tools"
       "harness-hook-no-find-grep"
+      "harness-hook-no-long-sleep"
       "harness-hook-simple-english"
     ];
     "model.before".steps = [
