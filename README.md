@@ -10,7 +10,6 @@ and calls the kernel's `lib.mkRushi` to produce one runnable package.
 
     nix build .#rushi    # build the fully configured package
     nix run   .#rushi    # run the configured rushi
-    nix run   .#rushi-bash  # configured kernel with only the bash tool
     nix run   .#rushi-tui   # run the self-contained TUI (config + exts)
     nix run   .#tui         # alias of .#rushi-tui
     nix develop          # dev shell with the configured rushi on PATH
@@ -79,12 +78,13 @@ there at runtime.
 
 ## Tool-set variants
 
-`configModule` takes a `toolNames` parameter. The default (null)
-uses the full native catalog from `config-module.nix`. The
-`rushi-bash` output passes `[ "bash" ]` to `toolNames`. That
-package's `tools.manifest` and `native_tool_paths` carry only
-the bash tool. The ext tools, hooks, and UI extensions are
-unchanged.
+The `nativeToolNames` list at the top of `config-module.nix` is
+the native tool catalog. It is `[ "bash" ]`. Every package ships
+a `tools.manifest` with `enabled = [ "bash" ]` and one
+`native_tool_paths` entry. Edit that list to expose more native
+tools. The `configModule` `toolNames` parameter accepts a
+per-build subset for future variants. The ext tools, hooks, and
+UI extensions are unchanged by the native tool set.
 
 ## Troubleshooting: external hooks not firing
 

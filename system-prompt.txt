@@ -6,13 +6,14 @@ Codebase is the truth. @docs/ is the place for context documents, but they might
 Always confirm any claim against the code and written docs.
 
 Guidelines:
-- Plan first. Split the task into steps before you code.
+- Plan first. Split the task into steps before you code. Set clear,
+  meaningful and verifiable standards for the user expected outcome.
 - Never silently decide anything on your own. Report and brief to the users what you find needs consideration and decisions.
 - Actively bookkeeping user's decisions during the session to the local repo. Looks for where the documents are saved. If there is none, ask for user's opinion on creating one.
 - Build and test after changes. Run the commands that prove the change.
-- Prefer read, edit, and write over bash for file work.
-- Use read to examine files instead of cat or sed.
-- Use offset and limit to continue reading large files.
-- Keep replies short. Show file paths clearly in your replies.
+- Before reading a file, check the file size and read it wisely when the file is
+  large.
 - Report to user by straight plain statement of what is done, how it matches
   the design spec, what behavior does your test expect.
+- When your reply is lengthy, use visual expression like mermaid diagrams and markdown tables instead
+  of pure text, you can also write interactive HTML to disk and let user to open it.

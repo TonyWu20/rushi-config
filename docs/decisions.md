@@ -2,6 +2,38 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Bash-only native tool catalog, lean variant retired (2026-10-06)
+
+**Decision.** The `nativeToolNames` catalog in `config-module.nix`
+is now `[ "bash" ]`. Every package exposes one native tool:
+bash. That covers the configured `rushi`, the combined
+`rushi-full`, and the self-wired `rushi-tui`. This change
+removed the `rushi-bash` lean variant and its `mkLean` builder
+from `flake.nix`. The variant would now build a byte-identical
+duplicate of `rushi`, so it is gone. The `configModule`
+`toolNames` parameter remains for per-build subsets.
+
+**Rationale.** The user wants a bash-only agent tool set. File
+work now happens through bash. The same change updated the
+`system-prompt.txt` guidance. It dropped the read/edit/write
+tool advice. The new lines tell the model to check file size
+before reading. They suggest mermaid diagrams, tables, or HTML
+for long replies.
+
+**Verified.** The `.#rushi` build passes. Its `config.toml`
+carries one `native_tool_paths` entry: the `tools/bash` store
+dir. The `tools.manifest` `[tools] enabled` list holds
+`[ "bash" ]`. The `rushi-full` default builds with the same
+config. `.#rushi-bash` no longer resolves. The ext tools,
+hooks, and the four UI extensions are unchanged.
+
+**Note.** The raw kernel package still bundles `bin/edit`,
+`bin/read`, and `bin/write`. Those binaries and the
+`tools/{edit,read,write}` manifests are inert. The manifest
+`enabled` list is the only tool exposure point. The `rushi-tui`
+config stays byte-identical to the kernel config, so the
+`rushi-full` overlay merge is unchanged.
+
 ## Ship the headless goal seeder in `rushi-full` (2026-10-04)
 
 **Decision.** `rushi-full` now bundles the `rushi-goal` binary from the

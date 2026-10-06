@@ -42,7 +42,7 @@ let
   # The declare-once native tool catalog: one name per kernel tool.
   # The manifest dir is always tools/<name> (the kernel's tools/
   # layout). Drives rushi.tools and the relative native_tool_paths.
-  nativeToolNames = [ "bash" "edit" "read" "write" ];
+  nativeToolNames = [ "bash" ];
 
   # The declare-once ext table (config/exts.nix): the single source of
   # truth for which ext packages to bundle.
@@ -71,7 +71,12 @@ in
   # resolves a bare name against the package bin/ dir (kernel hooks),
   # then the package hooks/ dir (ext hooks), then PATH.
   configModule =
-    { system, tuiPkg, toolPaths ? null, toolNames ? null }:
+    {
+      system,
+      tuiPkg,
+      toolPaths ? null,
+      toolNames ? null,
+    }:
     {
       ...
     }:
