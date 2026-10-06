@@ -349,14 +349,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1791267171,
-        "narHash": "sha256-db2xXF5iwfyFFmxWIcg3h7qft8cw/zPv+NzE1PRffk0=",
-        "path": "/home/tony/programming/rushi-dev/rushi-mineru-pdf",
-        "type": "path"
+        "lastModified": 1791267122,
+        "narHash": "sha256-zsbwHhzUn/uxbTYPoXSlcZ8tSCVusXUbFDuP1swg+Lk=",
+        "owner": "TonyWu20",
+        "repo": "rushi-mineru-pdf",
+        "rev": "5e0b37c0b767a5e593be47d6e7ee5caf21ab66d7",
+        "type": "github"
       },
       "original": {
-        "path": "/home/tony/programming/rushi-dev/rushi-mineru-pdf",
-        "type": "path"
+        "owner": "TonyWu20",
+        "repo": "rushi-mineru-pdf",
+        "type": "github"
       }
     },
     "rushi-obscura-web-access": {

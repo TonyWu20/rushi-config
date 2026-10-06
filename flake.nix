@@ -98,10 +98,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
-    # Local path pin (the repo is not hosted yet). Flip to
-    # github:TonyWu20/rushi-mineru-pdf at hosting time.
+    # Hosted ext repo. The lock pins the exact rev.
+    # Bump: `nix flake update rushi-mineru-pdf`.
     rushi-mineru-pdf = {
-      url = "path:/home/tony/programming/rushi-dev/rushi-mineru-pdf";
+      url = "github:TonyWu20/rushi-mineru-pdf";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
