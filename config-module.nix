@@ -36,6 +36,7 @@
   seFlake,
   statuslineFlake,
   obscuraWebFlake,
+  mineruFlake,
   mermaidExtFlake,
 }:
 let
@@ -53,6 +54,7 @@ let
       seFlake
       statuslineFlake
       obscuraWebFlake
+      mineruFlake
       mermaidExtFlake
       ;
   };

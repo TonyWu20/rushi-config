@@ -179,6 +179,7 @@
         "no-find-grep": "no-find-grep",
         "rushi-goal-mode": "rushi-goal-mode",
         "rushi-kernel": "rushi-kernel",
+        "rushi-mineru-pdf": "rushi-mineru-pdf",
         "rushi-obscura-web-access": "rushi-obscura-web-access_2",
         "rushi-simple-english": "rushi-simple-english_2",
         "rushi-statusline": "rushi-statusline_2",
@@ -336,6 +337,26 @@
         "owner": "TonyWu20",
         "repo": "rushi",
         "type": "github"
+      }
+    },
+    "rushi-mineru-pdf": {
+      "inputs": {
+        "fenix": [
+          "fenix"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791267030,
+        "narHash": "sha256-SwvI3TbJhtfudV/kQD3gKaWN0CpO/PpRnL2xJ/4Hlgw=",
+        "path": "/home/tony/programming/rushi-dev/rushi-mineru-pdf",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/tony/programming/rushi-dev/rushi-mineru-pdf",
+        "type": "path"
       }
     },
     "rushi-obscura-web-access": {

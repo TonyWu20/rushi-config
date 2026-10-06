@@ -98,6 +98,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
+    # Local path pin (the repo is not hosted yet). Flip to
+    # github:TonyWu20/rushi-mineru-pdf at hosting time.
+    rushi-mineru-pdf = {
+      url = "path:/home/tony/programming/rushi-dev/rushi-mineru-pdf";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
+    };
     # ── mermaid TUI transform ext (UI-ext repo, Mode B). ──
     rushi-tui-mermaid-ext = {
       url = "github:TonyWu20/rushi-tui-mermaid-ext";
@@ -129,6 +136,7 @@
       seFlake = inputs."rushi-simple-english";
       statuslineFlake = inputs."rushi-statusline";
       obscuraWebFlake = inputs."rushi-obscura-web-access";
+      mineruFlake = inputs."rushi-mineru-pdf";
       mermaidExtFlake = inputs."rushi-tui-mermaid-ext";
 
       # ── The config side (exts table + config module) was extracted to
@@ -144,6 +152,7 @@
           seFlake
           statuslineFlake
           obscuraWebFlake
+          mineruFlake
           mermaidExtFlake
           ;
       };

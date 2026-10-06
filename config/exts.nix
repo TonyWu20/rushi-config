@@ -26,6 +26,7 @@
   seFlake,
   statuslineFlake,
   obscuraWebFlake,
+  mineruFlake,
   mermaidExtFlake,
 }:
 system:
@@ -39,6 +40,7 @@ system:
     goalFlake.packages.${system}."goal-complete"
     obscuraWebFlake.packages.${system}."web-fetch"
     obscuraWebFlake.packages.${system}."web-search"
+    mineruFlake.packages.${system}.mineru
   ];
 
   # External UI extension packages. The producer's meta.rushi.ext

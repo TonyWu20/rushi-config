@@ -53,6 +53,9 @@ repos are hosted, flip each to a pinned `github:` ref. Then run
   -> `github:TonyWu20/no-find-grep-rushi?ref=<rev>`
 - `rushi-simple-english`: `path:/home/tony/programming/rushi-simple-english`
   -> `github:TonyWu20/rushi-simple-english?ref=<rev>`
+- `rushi-mineru-pdf`: `path:/home/tony/programming/rushi-dev/rushi-mineru-pdf`
+  (local pin, the repo is not hosted yet)
+  -> `github:TonyWu20/rushi-mineru-pdf?ref=<rev>`
 
 Notes:
 
