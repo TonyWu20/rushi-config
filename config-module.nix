@@ -26,9 +26,9 @@
 #              full catalog. A subset (e.g. [ "bash" ]) ships a
 #              version with fewer native tools.
 #
-# flake.nix imports this file with the six ext flake aliases and
-# re-binds the three names, so the flake's forSystem build section is
-# unchanged.
+# flake.nix imports this file with the ext flake aliases (plus the
+# optional tbFlake) and re-binds the three names per build
+# instantiation, so the flake's build section stays a concise view.
 
 {
   goalFlake,
@@ -38,6 +38,10 @@
   obscuraWebFlake,
   mineruFlake,
   mermaidExtFlake,
+  # The optional terminal-browser tool flake. The null default
+  # (off) keeps the exts table without the tool row. A non-null
+  # value enables the row in the exts table.
+  tbFlake ? null,
 }:
 let
   # The declare-once native tool catalog: one name per kernel tool.
@@ -56,6 +60,7 @@ let
       obscuraWebFlake
       mineruFlake
       mermaidExtFlake
+      tbFlake
       ;
   };
 

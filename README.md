@@ -12,6 +12,8 @@ and calls the kernel's `lib.mkRushi` to produce one runnable package.
     nix run   .#rushi    # run the configured rushi
     nix run   .#rushi-tui   # run the self-contained TUI (config + exts)
     nix run   .#tui         # alias of .#rushi-tui
+    nix build .#rushi-full-tb   # rushi-full with the optional
+                                 # terminal-browser tool enabled
     nix develop          # dev shell with the configured rushi on PATH
 
 Layout of the `.#rushi` output (`$out`):
@@ -55,6 +57,12 @@ repos are hosted, flip each to a pinned `github:` ref. Then run
   -> `github:TonyWu20/rushi-simple-english?ref=<rev>`
 - `rushi-mineru-pdf`: `github:TonyWu20/rushi-mineru-pdf`, the lock
   pins the rev. Bump with `nix flake update rushi-mineru-pdf`.
+- `terminal-browser-agent`: `path:/home/tony/programming/terminal-browser-agent`
+  (absolute path pin; a relative `path:` input is not usable,
+  because in pure eval mode it resolves against the git snapshot
+  root). At hosting time flip to
+  `github:TonyWu20/terminal-browser-agent?ref=<rev>` (public
+  repo), then `nix flake update terminal-browser-agent`.
 
 Notes:
 
@@ -87,6 +95,28 @@ a `tools.manifest` with `enabled = [ "bash" ]` and one
 tools. The `configModule` `toolNames` parameter accepts a
 per-build subset for future variants. The ext tools, hooks, and
 UI extensions are unchanged by the native tool set.
+
+## Optional terminal-browser tool
+
+`rushi-full` can bundle the terminal-browser tool from the
+`terminal-browser-agent` repo. The tool is opt-in: the default
+builds (`.#rushi-full`, `.#rushi`, `.#rushi-tui`, the devShell)
+ship without it.
+
+Enable it on the consumer side:
+
+- Prebaked attr, one-shot from this repo:
+  `nix build .#rushi-full-tb`
+- Builder function, from a consuming flake or NixOS module:
+  `inputs."rushi-config".lib.mkRushiFull
+    { system = system; enableTerminalBrowser = true; }`
+
+The enabled build appends the tool row to the exts table
+(`extTools` in `config/exts.nix`), so the configured package and
+the TUI package both carry it: `tools/terminal-browser/` is
+bundled in the package, and the generated config's
+`extension_tool_paths` names the tool's store path. The disabled
+build is byte-identical to the pre-option package.
 
 ## Troubleshooting: external hooks not firing
 

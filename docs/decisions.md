@@ -2,6 +2,52 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Optional terminal-browser tool in `rushi-full` (2026-10-10)
+
+**Decision.** The terminal-browser tool (the tool-only
+terminal-browser-agent repo) is wired into the build as an
+optional ext tool. The new flake input `terminal-browser-agent`
+pins the local repo by absolute path
+(`/home/tony/programming/terminal-browser-agent`, two levels up
+from this flake). The exts table gains a `tbFlake ? null`
+parameter: a non-null value appends the `terminal-browser` row to
+`extTools`. The flake builds two config-side instantiations:
+`cfg` (tool off, the default) and `cfgTb` (tool on).
+`rushi-full` keeps the off default. The consumer enables the tool
+through the prebaked `packages.<system>."rushi-full-tb"` attr or
+through `lib.mkRushiFull
+{ system = …; enableTerminalBrowser = true; }`.
+
+**Rationale.** The tool is a personal web-browsing extension. The
+user requires the option to live on the consumer side of
+rushi-config, so the default package is unchanged and the enabled
+variant is a separate, explicitly requested build. A relative
+`path:../../terminal-browser-agent` input is not usable: in pure
+eval mode a relative path input resolves against the git snapshot
+root, not the checkout. The absolute path pin matches this
+repo's documented bootstrap-stage convention.
+
+**Verified.** `.#rushi-full` (off) is byte-identical to the
+pre-change build: store path `1lxwi0jf…rushi-full-0.1` before
+and after. `.#rushi-full-tb` builds
+`9pziy8n0…rushi-full-0.1` and carries
+`tools/terminal-browser/{tool.toml,bin/,docs/}`, the
+`bin/` trio (`rushi` + `rushi-tui` + `rushi-goal`), and the
+tool's store path in the generated config's
+`extension_tool_paths`. The off package's config and `tools/`
+carry no terminal-browser entry. `lib.mkRushiFull` with
+`system` and `enableTerminalBrowser` resolves to the same
+derivations as the two prebaked attrs.
+
+**Note.** The kernel's `tools.manifest` is unchanged in shape:
+ext tools are not enumerated there. They are addressed by the
+`tools/<entry>` bundle dir and the config's
+`extension_tool_paths`. A Nix parse quirk shaped the lib
+builder: a tight `f { … }."attr"` selects on the argument
+attrset, not on the call result, so the select goes through a
+named `let` binding. The flake.nix + flake.lock pair is atomic
+as usual: commit them together.
+
 ## Bash-only native tool catalog, lean variant retired (2026-10-06)
 
 **Decision.** The `nativeToolNames` catalog in `config-module.nix`

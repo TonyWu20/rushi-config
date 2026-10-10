@@ -4,7 +4,8 @@
 # Every build list (rushi.external_*) and every runtime value in the
 # generated config (ext tool paths, ui-ext entry names) derives from
 # this table in pure Nix, at eval time. To add or drop an ext, edit
-# one row.
+# one row. The terminal-browser row is optional: it is present only
+# when the caller passes a non-null `tbFlake`.
 #
 # Since rushi#13 the kernel reads each producer's meta.rushi at eval
 # time. Tool packages set meta.rushi.entry, UI-ext packages set
@@ -28,6 +29,10 @@
   obscuraWebFlake,
   mineruFlake,
   mermaidExtFlake,
+  # The optional terminal-browser tool flake (the tool-only
+  # terminal-browser-agent repo). The null default keeps the
+  # default build without the tool row.
+  tbFlake ? null,
 }:
 system:
 {
@@ -41,7 +46,15 @@ system:
     obscuraWebFlake.packages.${system}."web-fetch"
     obscuraWebFlake.packages.${system}."web-search"
     mineruFlake.packages.${system}.mineru
-  ];
+  ]
+  # The optional terminal-browser tool. Enabled when the caller
+  # passes `tbFlake`; the null default keeps the row out of the
+  # default build.
+  ++ (
+    if tbFlake == null then
+    [ ]
+    else [ tbFlake.packages.${system}."terminal-browser" ]
+  );
 
   # External UI extension packages. The producer's meta.rushi.ext
   # (issue #13) supplies the [ui_extensions] entry name at eval time.

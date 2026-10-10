@@ -111,6 +111,20 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
+
+    # ── terminal-browser tool ext (tool-only repo, Mode B). ──
+    # Bootstrap-stage local pin (the repo at
+    # /home/tony/programming/terminal-browser-agent, two levels
+    # up from this flake). An absolute path: a relative path input
+    # would resolve against the git snapshot root in pure eval
+    # mode. At hosting time flip to the public repo
+    # (github:TonyWu20/terminal-browser-agent), then
+    # `nix flake update terminal-browser-agent` to pin it. The
+    # tool is optional in the build: see cfgTb below.
+    terminal-browser-agent = {
+      url = "path:/home/tony/programming/terminal-browser-agent";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -138,13 +152,19 @@
       obscuraWebFlake = inputs."rushi-obscura-web-access";
       mineruFlake = inputs."rushi-mineru-pdf";
       mermaidExtFlake = inputs."rushi-tui-mermaid-ext";
+      tbFlake = inputs."terminal-browser-agent";
 
       # ── The config side (exts table + config module) was extracted to
       # config-module.nix (the exts and hooks tables live in config/).
-      # It is imported with the six ext flake aliases and its exts,
-      # nativeToolNames, and configModule are re-bound here, so the
-      # forSystem build section below stays a concise view of the build
-      # graph.
+      # It is imported with the ext flake aliases and its exts,
+      # nativeToolNames, and configModule are re-bound per build below,
+      # so the build section stays a concise view of the build graph.
+      #
+      # Two instantiations of the config side:
+      #   cfg    the default build. The optional terminal-browser
+      #          tool is off (tbFlake is the null default).
+      #   cfgTb  the enabled build. tbFlake is passed, so the exts
+      #          table carries the terminal-browser row.
       cfg = import ./config-module.nix {
         inherit
           goalFlake
@@ -156,21 +176,43 @@
           mermaidExtFlake
           ;
       };
-      exts = cfg.exts;
-      nativeToolNames = cfg.nativeToolNames;
-      configModule = cfg.configModule;
+      cfgTb = import ./config-module.nix {
+        inherit
+          goalFlake
+          nfgFlake
+          seFlake
+          statuslineFlake
+          obscuraWebFlake
+          mineruFlake
+          mermaidExtFlake
+          tbFlake
+          ;
+      };
 
       # Nix attrset siblings do not share scope, so the configured package
       # (the mkRushi result) is bound in the `let` and referenced by key.
-      forSystem =
-        system:
+      #
+      # buildForSystem is the per-system build. The consumer-side flag
+      # `enableTerminalBrowser` (default false) picks the config-side
+      # instantiation: cfg (tool off) or cfgTb (tool on).
+      buildForSystem =
+        {
+          system,
+          enableTerminalBrowser ? false,
+        }:
         let
+          c = if enableTerminalBrowser then cfgTb else cfg;
+          exts = c.exts;
+          nativeToolNames = c.nativeToolNames;
+          configModule = c.configModule;
           pkgs = import nixpkgs {
             inherit system;
             overlays = [ fenix.overlays.default ];
           };
           moldStdenv = pkgs.stdenvAdapters.useMoldLinker pkgs.clangStdenv;
-          # The declare-once exts table for this system.
+          # The declare-once exts table for this system. The
+          # terminal-browser row is present only in the cfgTb
+          # instantiation.
           e = exts system;
           # The raw TUI package from the TUI flake. Since the
           # self-wired entry (rushi-tui issue #22,
@@ -421,7 +463,58 @@
         };
     in
     {
-      packages = pkgLib.genAttrs supportedSystems forSystem;
+      # The per-system default build (the optional terminal-browser
+      # tool is off, the long-standing attr set) plus a prebaked
+      # enabled-variant attr.
+      packages = pkgLib.genAttrs supportedSystems (
+        system:
+        let
+          base = buildForSystem { inherit system; };
+          withTb = buildForSystem {
+            inherit system;
+            enableTerminalBrowser = true;
+          };
+        in
+        base // {
+          # Prebaked convenience for the enabled variant. A consuming
+          # flake gets the same package through lib.mkRushiFull with
+          # the flag set.
+          "rushi-full-tb" = withTb."rushi-full";
+        }
+      );
+
+      # The consumer-side control point for the optional tool. The
+      # caller passes its flag; the result is the combined
+      # rushi-full package. `enableTerminalBrowser` (default false)
+      # adds the terminal-browser tool.
+      #
+      # From a consuming flake:
+      #   inputs."rushi-config".lib.mkRushiFull
+      #     {
+      #       system = system;
+      #       enableTerminalBrowser = true;
+      #     }
+      # One-shot from this repo: `nix build .#rushi-full-tb`.
+      # Note: the `r` binding below is required. A tight
+      # `buildForSystem { … }."rushi-full"` parses as a select on
+      # the argument attrset, not on the call result (a Nix parse
+      # quirk), so the select must go through a named binding.
+      lib = {
+        # The caller passes its target `system` (the flake or NixOS
+        # module's own system value). `enableTerminalBrowser` (default
+        # false) adds the optional terminal-browser tool.
+        mkRushiFull =
+          {
+            system,
+            enableTerminalBrowser ? false,
+          }:
+          let
+            r = buildForSystem {
+              inherit system enableTerminalBrowser;
+            };
+          in
+          r."rushi-full";
+      };
 
       # Re-expose the kernel's NixOS / home-manager modules so a consumer
       # config can do `programs.rushi.enable = true; package = <pkg>;`.

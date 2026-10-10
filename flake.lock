@@ -184,7 +184,8 @@
         "rushi-simple-english": "rushi-simple-english_2",
         "rushi-statusline": "rushi-statusline_2",
         "rushi-tui": "rushi-tui_2",
-        "rushi-tui-mermaid-ext": "rushi-tui-mermaid-ext_2"
+        "rushi-tui-mermaid-ext": "rushi-tui-mermaid-ext_2",
+        "terminal-browser-agent": "terminal-browser-agent"
       }
     },
     "rushi-config": {
@@ -735,6 +736,23 @@
         "ref": "nightly",
         "repo": "rust-analyzer",
         "type": "github"
+      }
+    },
+    "terminal-browser-agent": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791635989,
+        "narHash": "sha256-wbW0YLt+u/qW91ED0JTMEfHcJBFFrMjYsMSkDr7lTB0=",
+        "path": "/home/tony/programming/terminal-browser-agent",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/tony/programming/terminal-browser-agent",
+        "type": "path"
       }
     }
   },
