@@ -29,6 +29,7 @@
   obscuraWebFlake,
   mineruFlake,
   mermaidExtFlake,
+  imgFlake,
   # The optional terminal-browser tool flake (the tool-only
   # terminal-browser-agent repo). The null default keeps the
   # default build without the tool row.
@@ -46,6 +47,7 @@ system:
     obscuraWebFlake.packages.${system}."web-fetch"
     obscuraWebFlake.packages.${system}."web-search"
     mineruFlake.packages.${system}.mineru
+    imgFlake.packages.${system}.img
   ]
   # The optional terminal-browser tool. Enabled when the caller
   # passes `tbFlake`; the null default keeps the row out of the

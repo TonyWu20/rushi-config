@@ -38,6 +38,7 @@
   obscuraWebFlake,
   mineruFlake,
   mermaidExtFlake,
+  imgFlake,
   # The optional terminal-browser tool flake. The null default
   # (off) keeps the exts table without the tool row. A non-null
   # value enables the row in the exts table.
@@ -60,6 +61,7 @@ let
       obscuraWebFlake
       mineruFlake
       mermaidExtFlake
+      imgFlake
       tbFlake
       ;
   };

@@ -68,7 +68,9 @@
       inputs.fenix.follows = "fenix";
     };
 
-    # ── Extension / hook repos (each is its own git repo + flake). ──
+    # ── Extension / hook repos (each is its own git repo + flake).
+    # rushi-image-read ships the `img` image-read ext tool; local
+    # pin until hosting (see its input below). ──
     # At hosting time, flip each to a pinned github ref.
     rushi-goal-mode = {
       url = "github:TonyWu20/rushi-goal-mode";
@@ -102,6 +104,13 @@
     # Bump: `nix flake update rushi-mineru-pdf`.
     rushi-mineru-pdf = {
       url = "github:TonyWu20/rushi-mineru-pdf";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
+    };
+    # Local path pin (the repo is not hosted yet). Flip to
+    # github:TonyWu20/rushi-image-read at hosting time.
+    rushi-image-read = {
+      url = "path:/home/tony/programming/rushi-dev/rushi-image-read";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
@@ -146,6 +155,7 @@
       statuslineFlake = inputs."rushi-statusline";
       obscuraWebFlake = inputs."rushi-obscura-web-access";
       mineruFlake = inputs."rushi-mineru-pdf";
+      imgFlake = inputs."rushi-image-read";
       mermaidExtFlake = inputs."rushi-tui-mermaid-ext";
       tbFlake = inputs."terminal-browser-agent";
 
@@ -169,6 +179,7 @@
           obscuraWebFlake
           mineruFlake
           mermaidExtFlake
+          imgFlake
           ;
       };
       cfgTb = import ./config-module.nix {
@@ -180,6 +191,7 @@
           obscuraWebFlake
           mineruFlake
           mermaidExtFlake
+          imgFlake
           tbFlake
           ;
       };
