@@ -57,12 +57,9 @@ repos are hosted, flip each to a pinned `github:` ref. Then run
   -> `github:TonyWu20/rushi-simple-english?ref=<rev>`
 - `rushi-mineru-pdf`: `github:TonyWu20/rushi-mineru-pdf`, the lock
   pins the rev. Bump with `nix flake update rushi-mineru-pdf`.
-- `terminal-browser-agent`: `path:/home/tony/programming/terminal-browser-agent`
-  (absolute path pin; a relative `path:` input is not usable,
-  because in pure eval mode it resolves against the git snapshot
-  root). At hosting time flip to
-  `github:TonyWu20/terminal-browser-agent?ref=<rev>` (public
-  repo), then `nix flake update terminal-browser-agent`.
+- `terminal-browser-agent`: `github:TonyWu20/terminal-browser-agent`,
+  hosted ext repo. The lock pins the rev (current: `544a372`).
+  Bump with `nix flake update terminal-browser-agent`.
 
 Notes:
 

@@ -745,14 +745,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1791635989,
-        "narHash": "sha256-wbW0YLt+u/qW91ED0JTMEfHcJBFFrMjYsMSkDr7lTB0=",
-        "path": "/home/tony/programming/terminal-browser-agent",
-        "type": "path"
+        "lastModified": 1791635980,
+        "narHash": "sha256-W5uYV05XC41gAbo+GO80TVF9KH00KNwAYNO7kUQ00V8=",
+        "owner": "TonyWu20",
+        "repo": "terminal-browser-agent",
+        "rev": "544a3726552e36afe6cba695615c0cfd2648673d",
+        "type": "github"
       },
       "original": {
-        "path": "/home/tony/programming/terminal-browser-agent",
-        "type": "path"
+        "owner": "TonyWu20",
+        "repo": "terminal-browser-agent",
+        "type": "github"
       }
     }
   },

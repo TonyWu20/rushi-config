@@ -113,16 +113,11 @@
     };
 
     # ── terminal-browser tool ext (tool-only repo, Mode B). ──
-    # Bootstrap-stage local pin (the repo at
-    # /home/tony/programming/terminal-browser-agent, two levels
-    # up from this flake). An absolute path: a relative path input
-    # would resolve against the git snapshot root in pure eval
-    # mode. At hosting time flip to the public repo
-    # (github:TonyWu20/terminal-browser-agent), then
-    # `nix flake update terminal-browser-agent` to pin it. The
-    # tool is optional in the build: see cfgTb below.
+    # Hosted ext repo. The lock pins the exact rev.
+    # Bump: `nix flake update terminal-browser-agent`. The tool
+    # is optional in the build: see cfgTb below.
     terminal-browser-agent = {
-      url = "path:/home/tony/programming/terminal-browser-agent";
+      url = "github:TonyWu20/terminal-browser-agent";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

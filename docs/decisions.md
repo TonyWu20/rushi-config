@@ -2,6 +2,32 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Flip the `terminal-browser-agent` input to `github:` (2026-10-10)
+
+**Decision.** The `terminal-browser-agent` input is now
+`github:TonyWu20/terminal-browser-agent`. The lock pins rev
+`544a372`. That rev is the default-branch HEAD. It is the
+same rev as the local checkout. This replaces the absolute
+`path:` pin from the earlier same-day entry. Bump with
+`nix flake update terminal-browser-agent`.
+
+**Rationale.** User decision. The repo is on github. The flake
+pulls the hosted source. A `path:` pin couples the flake to
+one machine's checkout. Other consumers cannot build from it.
+
+**Verified.** `nix flake lock` re-pinned the node to the
+github rev. `.#rushi-full` (off) is unchanged: store path
+`1lxwi0jf…rushi-full-0.1`. `.#rushi-full-tb` now builds
+`q7cgxf5b…rushi-full-0.1` from the hosted source. The
+`tools/terminal-browser/` layout, the `bin/` trio, and the
+config's `extension_tool_paths` entry all pass as before. The
+lib builder resolves to the same two derivations.
+
+**Note.** The TB tool package got a new store path
+(`crv29ndz…terminal-browser-tool-0.1.0`). The derivation's
+source input moved from the path flake to the git flake. The
+file content is unchanged.
+
 ## Optional terminal-browser tool in `rushi-full` (2026-10-10)
 
 **Decision.** The terminal-browser tool (the tool-only
