@@ -57,9 +57,9 @@ repos are hosted, flip each to a pinned `github:` ref. Then run
   -> `github:TonyWu20/rushi-simple-english?ref=<rev>`
 - `rushi-mineru-pdf`: `github:TonyWu20/rushi-mineru-pdf`, the lock
   pins the rev. Bump with `nix flake update rushi-mineru-pdf`.
-- `rushi-image-read`: `path:/home/tony/programming/rushi-dev/rushi-image-read`
-  -> `github:TonyWu20/rushi-image-read?ref=<rev>`. The `img`
-  image-read ext tool. Flip at hosting time.
+- `rushi-image-read`: `github:TonyWu20/rushi-image-read`, the `img`
+  image-read ext tool. The lock pins the rev.
+  Bump with `nix flake update rushi-image-read`.
 - `terminal-browser-agent`: `github:TonyWu20/terminal-browser-agent`,
   hosted ext repo. The lock pins the rev (current: `544a372`).
   Bump with `nix flake update terminal-browser-agent`.

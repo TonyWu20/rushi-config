@@ -278,14 +278,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1791645378,
-        "narHash": "sha256-QAqEHIiHwmf49NOd8xZdL/wsVjQ2X0TDsVfATz7Ysr0=",
-        "path": "/home/tony/programming/rushi-dev/rushi-image-read",
-        "type": "path"
+        "lastModified": 1791645344,
+        "narHash": "sha256-iO3YaBB7hQNT5lz/urzjFyKBWBJNbig6yxB6DCHoBNY=",
+        "owner": "TonyWu20",
+        "repo": "rushi-image-read",
+        "rev": "cac75a25984b1e5d78f23ea248d48810a431d95b",
+        "type": "github"
       },
       "original": {
-        "path": "/home/tony/programming/rushi-dev/rushi-image-read",
-        "type": "path"
+        "owner": "TonyWu20",
+        "repo": "rushi-image-read",
+        "type": "github"
       }
     },
     "rushi-kernel": {

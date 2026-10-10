@@ -107,10 +107,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
-    # Local path pin (the repo is not hosted yet). Flip to
-    # github:TonyWu20/rushi-image-read at hosting time.
+    # Hosted ext repo. The lock pins the exact rev.
+    # Bump: `nix flake update rushi-image-read`.
     rushi-image-read = {
-      url = "path:/home/tony/programming/rushi-dev/rushi-image-read";
+      url = "github:TonyWu20/rushi-image-read";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
