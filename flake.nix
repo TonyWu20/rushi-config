@@ -136,6 +136,20 @@
       self,
       nixpkgs,
       fenix,
+      # The hyphenated ext input names destructure as bare
+      # identifiers. The body uses them without the `inputs.`
+      # prefix (for example `rushi-kernel.lib.mkRushi`).
+      rushi-kernel,
+      rushi-tui,
+      rushi-goal-mode,
+      no-find-grep,
+      rushi-simple-english,
+      rushi-statusline,
+      rushi-obscura-web-access,
+      rushi-mineru-pdf,
+      rushi-image-read,
+      rushi-tui-mermaid-ext,
+      terminal-browser-agent,
       ...
     }:
     let
@@ -147,53 +161,24 @@
       ];
       pkgLib = nixpkgs.lib;
 
-      rushiKernel = inputs."rushi-kernel";
-      tuiFlake = inputs."rushi-tui";
-      goalFlake = inputs."rushi-goal-mode";
-      nfgFlake = inputs."no-find-grep";
-      seFlake = inputs."rushi-simple-english";
-      statuslineFlake = inputs."rushi-statusline";
-      obscuraWebFlake = inputs."rushi-obscura-web-access";
-      mineruFlake = inputs."rushi-mineru-pdf";
-      imgFlake = inputs."rushi-image-read";
-      mermaidExtFlake = inputs."rushi-tui-mermaid-ext";
-      tbFlake = inputs."terminal-browser-agent";
-
       # ── The config side (exts table + config module) was extracted to
       # config-module.nix (the exts and hooks tables live in config/).
-      # It is imported with the ext flake aliases and its exts,
-      # nativeToolNames, and configModule are re-bound per build below,
-      # so the build section stays a concise view of the build graph.
+      # It is imported with the flake's `inputs` attrset and its
+      # exts, nativeToolNames, and configModule are re-bound per
+      # build below, so the build section stays a concise view of
+      # the build graph.
       #
       # Two instantiations of the config side:
       #   cfg    the default build. The optional terminal-browser
-      #          tool is off (tbFlake is the null default).
-      #   cfgTb  the enabled build. tbFlake is passed, so the exts
-      #          table carries the terminal-browser row.
+      #          tool is off (the tbEnabled default is false).
+      #   cfgTb  the enabled build. tbEnabled is true, so the
+      #          exts table carries the terminal-browser row.
       cfg = import ./config-module.nix {
-        inherit
-          goalFlake
-          nfgFlake
-          seFlake
-          statuslineFlake
-          obscuraWebFlake
-          mineruFlake
-          mermaidExtFlake
-          imgFlake
-          ;
+        inherit inputs;
       };
       cfgTb = import ./config-module.nix {
-        inherit
-          goalFlake
-          nfgFlake
-          seFlake
-          statuslineFlake
-          obscuraWebFlake
-          mineruFlake
-          mermaidExtFlake
-          imgFlake
-          tbFlake
-          ;
+        inherit inputs;
+        tbEnabled = true;
       };
 
       # Nix attrset siblings do not share scope, so the configured package
@@ -226,7 +211,7 @@
           # docs/tui-self-wired-entry.md) the package ships a single
           # `rushi-tui` binary at bin/rushi-tui; the old `bin/tui`
           # name is gone.
-          rawTui = tuiFlake.packages.${system}.default;
+          rawTui = rushi-tui.packages.${system}.default;
           # ── TUI binary for the configured package.
           # Since rushi-tui dd69b84 (issue #11) the TUI resolves its
           # config side-by-side with the binary
@@ -259,12 +244,12 @@
           };
           # The raw kernel package (bin/ + tools/ + tools.manifest):
           # the absolute store home of the native tool manifests.
-          kernelRaw = rushiKernel.packages.${system}.rushi;
+          kernelRaw = rushi-kernel.packages.${system}.rushi;
           # The headless goal seeder (rushi-goal-mode issue #8): a bare
           # binary, not a loop tool and not an ext. A user setup
           # script calls it once to arm the session goal files before
           # a headless `rushi run` starts.
-          rushiGoalPkg = goalFlake.packages.${system}."rushi-goal";
+          rushiGoalPkg = rushi-goal-mode.packages.${system}."rushi-goal";
           # Absolute store tool paths, written into BOTH generated
           # configs. The raw kernel package's tools/ for the native
           # set, each ext tool package's outPath for the external set.
@@ -284,7 +269,7 @@
           # the TUI variant. The package still bundles tools/ next to
           # its config.toml (the kernel's layout), but the config
           # itself points at the store locations.
-          mk = rushiKernel.lib.mkRushi {
+          mk = rushi-kernel.lib.mkRushi {
             inherit pkgs;
             modules = [
               (configModule {
@@ -295,7 +280,7 @@
           };
           # The TUI variant of the generated config: identical content
           # to mk.config, since both use the absolute store tool paths.
-          mkTui = rushiKernel.lib.mkRushi {
+          mkTui = rushi-kernel.lib.mkRushi {
             inherit pkgs;
             modules = [
               (configModule {
@@ -458,7 +443,7 @@
           # run the CLI loop.
           rushi = mk.package;
           # Raw kernel binary (no user config), for `rushi setup` / dev.
-          rushi-kernel = rushiKernel.packages.${system}.rushi;
+          rushi-kernel = rushi-kernel.packages.${system}.rushi;
           # The self-contained TUI front-end (self-wired entry,
           # issue #22): the rushi-tui binary + generated config.toml +
           # bundled ui_extensions/, laid out side by side so the
@@ -526,10 +511,10 @@
       # Re-expose the kernel's NixOS / home-manager modules so a consumer
       # config can do `programs.rushi.enable = true; package = <pkg>;`.
       nixosModules = {
-        rushi = rushiKernel.nixosModules.rushi;
+        rushi = rushi-kernel.nixosModules.rushi;
       };
       homeManagerModules = {
-        rushi = rushiKernel.homeManagerModules.rushi;
+        rushi = rushi-kernel.homeManagerModules.rushi;
       };
 
       # Dev shell with the combined rushi on PATH. One package (the

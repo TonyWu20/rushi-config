@@ -2,6 +2,62 @@
 
 Session notes on design decisions for this config flake. Newest first.
 
+## Destructure the ext input names in the `outputs` pattern (2026-10-12)
+
+**Decision.** The `outputs` signature now destructures all eleven
+hyphenated flake input names alongside `self`, `nixpkgs`, and
+`fenix`. The body uses them as bare names. No `inputs."…"`
+prefix remains in the flake body.
+
+**Rationale.** User instruction. Nix destructures hyphenated
+attrpaths in lambda patterns. The binding is usable in the body
+with attrselects (for example `rushi-kernel.lib.mkRushi`). The
+`inputs.` prefix and the quoted select add no capability.
+
+**Verified.** `nix flake check --no-build` passes all checks on
+the host system (`x86_64-linux`).
+
+## Drop the `goal` ext tool from the exts table (2026-10-12)
+
+**Decision.** `config/exts.nix` no longer lists the `goal`
+package (`rushi-goal-mode` `goal` output) in `extTools`. The
+`goal-blocked` and `goal-complete` loop tools stay in `extTools`.
+The `goal-ext` UI extension stays in `extUi`. The `rushi-goal`
+headless seeder stays: it is a separate output, shipped into the
+combined package `bin/`.
+
+**Rationale.** User decision. The agent does not need to see the
+`goal` tool.
+
+**Verified.** `nix flake check --no-build` passes all checks on
+the host system (`x86_64-linux`).
+
+## Drop the flake-input alias bindings (2026-10-12)
+
+**Decision.** `flake.nix` no longer binds alias identifiers for
+the hyphenated flake inputs. All eleven alias lines are gone
+(`rushiKernel`, `tuiFlake`, `goalFlake`, `nfgFlake`, `seFlake`,
+`statuslineFlake`, `obscuraWebFlake`, `mineruFlake`, `imgFlake`,
+`mermaidExtFlake`, `tbFlake`). The call sites select
+`inputs."rushi-kernel"` and friends directly.
+
+The extracted modules take the `inputs` attrset instead of the
+alias chain. `config-module.nix` and `config/exts.nix` now take
+`{ inputs, tbEnabled ? false }`. The exts table selects each ext
+flake directly (for example
+`inputs."rushi-goal-mode".packages.${system}."goal-blocked"`).
+The `tbFlake ? null` value-or-null optionality became the
+`tbEnabled` boolean, symmetric with the consumer-side
+`enableTerminalBrowser` flag.
+
+**Rationale.** User correction. Hyphenated input names only bar
+a bare Nix identifier. `inputs."rushi-kernel"` is a valid quoted
+attribute select anywhere in the `inputs@{…}` outputs body. The
+alias bindings added indirection without capability.
+
+**Verified.** `nix flake check --no-build` passes all checks on
+the host system (`x86_64-linux`).
+
 ## Flip the `terminal-browser-agent` input to `github:` (2026-10-10)
 
 **Decision.** The `terminal-browser-agent` input is now

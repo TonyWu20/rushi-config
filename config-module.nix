@@ -26,23 +26,19 @@
 #              full catalog. A subset (e.g. [ "bash" ]) ships a
 #              version with fewer native tools.
 #
-# flake.nix imports this file with the ext flake aliases (plus the
-# optional tbFlake) and re-binds the three names per build
-# instantiation, so the flake's build section stays a concise view.
+# flake.nix imports this file with the flake's `inputs` attrset
+# (plus the optional `tbEnabled` flag) and re-binds the three
+# names per build instantiation, so the flake's build section
+# stays a concise view of the build graph.
 
 {
-  goalFlake,
-  nfgFlake,
-  seFlake,
-  statuslineFlake,
-  obscuraWebFlake,
-  mineruFlake,
-  mermaidExtFlake,
-  imgFlake,
-  # The optional terminal-browser tool flake. The null default
-  # (off) keeps the exts table without the tool row. A non-null
-  # value enables the row in the exts table.
-  tbFlake ? null,
+  # The flake's full inputs attrset. The ext table selects each
+  # ext flake directly, so no alias bindings are needed.
+  inputs,
+  # The optional terminal-browser tool (the tool-only
+  # terminal-browser-agent repo). false (the default, off) keeps
+  # the exts table without the tool row. true enables the row.
+  tbEnabled ? false,
 }:
 let
   # The declare-once native tool catalog: one name per kernel tool.
@@ -53,17 +49,7 @@ let
   # The declare-once ext table (config/exts.nix): the single source of
   # truth for which ext packages to bundle.
   exts = import ./config/exts.nix {
-    inherit
-      goalFlake
-      nfgFlake
-      seFlake
-      statuslineFlake
-      obscuraWebFlake
-      mineruFlake
-      mermaidExtFlake
-      imgFlake
-      tbFlake
-      ;
+    inherit inputs tbEnabled;
   };
 
   # The [hooks] defs + pipeline table (config/hook-windows.nix),
