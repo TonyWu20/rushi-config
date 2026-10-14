@@ -302,11 +302,11 @@
         "rushiTui": "rushiTui"
       },
       "locked": {
-        "lastModified": 1791920959,
-        "narHash": "sha256-mxtgdp0ie47mmbCqQAl3Ri8Ec8TOLXYLcvojo3p0qPk=",
+        "lastModified": 1791971143,
+        "narHash": "sha256-3f/D7adPq5vXOE2fUI/cX6Ig9AV6X+K/WxmNbNesXa8=",
         "owner": "TonyWu20",
         "repo": "rushi",
-        "rev": "1f1f971e4dc80825b35a5eebacdc41cc9d02f95c",
+        "rev": "4988878fb72d0c5dab0ff69435cfe0578ba7bb93",
         "type": "github"
       },
       "original": {
