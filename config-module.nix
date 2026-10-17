@@ -25,6 +25,10 @@
 #   toolNames  ? null. The native tool names to expose. null is the
 #              full catalog. A subset (e.g. [ "bash" ]) ships a
 #              version with fewer native tools.
+#   systemPrompt ? null. The [system_prompt] text. null is the
+#              built-in system-prompt.txt. A string is the inline
+#              text. A path (or a text-file derivation) is read
+#              as a file.
 #
 # flake.nix imports this file with the flake's `inputs` attrset
 # (plus the optional `tbEnabled` flag) and re-binds the three
@@ -71,6 +75,7 @@ in
       tuiPkg,
       toolPaths ? null,
       toolNames ? null,
+      systemPrompt ? null,
     }:
     {
       ...
@@ -82,6 +87,22 @@ in
       # The native tool names for this build: the passed subset, or
       # the full catalog when null.
       tools = if toolNames == null then nativeToolNames else toolNames;
+      # A text-file source: a Nix path value, or a derivation
+      # attrset that carries an outPath (for example the result
+      # of `pkgs.writeText`).
+      isFileSource =
+        v:
+        builtins.isPath v || (builtins.isAttrs v && v ? outPath);
+      # The [system_prompt] text. The parameter is null, the
+      # built-in system-prompt.txt. A string is used verbatim.
+      # A path or text-file derivation is read as a file.
+      systemPromptText =
+        if systemPrompt == null then
+          builtins.readFile ./system-prompt.txt
+        else if isFileSource systemPrompt then
+          builtins.readFile systemPrompt
+        else
+          systemPrompt;
       # The [paths] tool entries. Relative by default: the configured
       # package bundles tools/ next to its config, so the relative
       # entries resolve. The TUI variant passes absolute store paths
@@ -161,7 +182,7 @@ in
 
           # [system_prompt]
           system_prompt = {
-            text = builtins.readFile ./system-prompt.txt;
+            text = systemPromptText;
           };
 
           # [tui]

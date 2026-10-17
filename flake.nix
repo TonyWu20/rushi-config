@@ -186,11 +186,17 @@
       #
       # buildForSystem is the per-system build. The consumer-side flag
       # `enableTerminalBrowser` (default false) picks the config-side
-      # instantiation: cfg (tool off) or cfgTb (tool on).
+      # instantiation: cfg (tool off) or cfgTb (tool on). The
+      # consumer-side value `systemPrompt` (default null) overrides
+      # the [system_prompt] text of the generated config.
       buildForSystem =
         {
           system,
           enableTerminalBrowser ? false,
+          # null keeps the built-in system-prompt.txt. A string is
+          # the inline prompt text. A path or text-file derivation
+          # is read as a file.
+          systemPrompt ? null,
         }:
         let
           c = if enableTerminalBrowser then cfgTb else cfg;
@@ -273,7 +279,7 @@
             inherit pkgs;
             modules = [
               (configModule {
-                inherit system tuiPkg;
+                inherit system tuiPkg systemPrompt;
                 toolPaths = absToolPaths;
               })
             ];
@@ -284,7 +290,7 @@
             inherit pkgs;
             modules = [
               (configModule {
-                inherit system tuiPkg;
+                inherit system tuiPkg systemPrompt;
                 toolPaths = absToolPaths;
               })
             ];
@@ -475,16 +481,18 @@
         }
       );
 
-      # The consumer-side control point for the optional tool. The
-      # caller passes its flag; the result is the combined
-      # rushi-full package. `enableTerminalBrowser` (default false)
-      # adds the terminal-browser tool.
+      # The consumer-side control point for the optional tool and
+      # the system prompt. The caller passes its flags; the result
+      # is the combined rushi-full package. `enableTerminalBrowser`
+      # (default false) adds the terminal-browser tool. `systemPrompt`
+      # (default null) overrides the [system_prompt] text.
       #
       # From a consuming flake:
       #   inputs."rushi-config".lib.mkRushiFull
       #     {
       #       system = system;
       #       enableTerminalBrowser = true;
+      #       systemPrompt = ./my-prompt.txt;
       #     }
       # One-shot from this repo: `nix build .#rushi-full-tb`.
       # Note: the `r` binding below is required. A tight
@@ -494,15 +502,20 @@
       lib = {
         # The caller passes its target `system` (the flake or NixOS
         # module's own system value). `enableTerminalBrowser` (default
-        # false) adds the optional terminal-browser tool.
+        # false) adds the optional terminal-browser tool. `systemPrompt`
+        # (default null) overrides the [system_prompt] text: null
+        # keeps the built-in system-prompt.txt, a string is inline
+        # text, and a path or text-file derivation is read as a
+        # file.
         mkRushiFull =
           {
             system,
             enableTerminalBrowser ? false,
+            systemPrompt ? null,
           }:
           let
             r = buildForSystem {
-              inherit system enableTerminalBrowser;
+              inherit system enableTerminalBrowser systemPrompt;
             };
           in
           r."rushi-full";

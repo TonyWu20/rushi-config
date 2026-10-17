@@ -686,3 +686,29 @@ at build time, so this flake no longer lists them.
   (lock rev `3e2a787`)...~~ **Done** — lock now pins `bf87e41` on the
   github ref (hosting-time state). No `path:` flip was ever needed in this
   flake because #10 shipped to the remote.
+
+## System prompt override option (2026-10-17)
+
+**Principle.** The `[system_prompt].text` value is a free build-time
+consumer value, not a flake-attr value. Free text cannot be
+prebaked into `packages.<system>`, so the option lives on the
+consumer-side builder function (`lib.mkRushiFull`), mirroring the
+`enableTerminalBrowser` precedent.
+
+- `configModule` gains `systemPrompt ? null`.
+  - `null` (default) keeps the built-in `system-prompt.txt`.
+    The prebaked `packages` attrs stay byte-identical.
+  - A string is used verbatim as the inline prompt text.
+  - A path or text-file derivation is read as a file
+    via `builtins.readFile`.
+- `buildForSystem` and `lib.mkRushiFull` thread the parameter to
+  both `mkRushi` instantiations. The configured `rushi` package
+  and the `rushi-tui` package share one generated config, so
+  one parameter covers both.
+- Consumer usage:
+  `inputs."rushi-config".lib.mkRushiFull
+    { system = system; systemPrompt = ./my-prompt.txt; }`
+
+Verified by evaluation: the default build's `[system_prompt].text`
+still reads `system-prompt.txt`. A string override and a path
+override both land in the generated `config.toml`.

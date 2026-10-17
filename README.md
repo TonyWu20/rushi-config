@@ -118,6 +118,31 @@ bundled in the package, and the generated config's
 `extension_tool_paths` names the tool's store path. The disabled
 build is byte-identical to the pre-option package.
 
+## System prompt
+
+The generated config's `[system_prompt].text` section defaults to
+the built-in `system-prompt.txt` at the repo root. A consumer can
+override it through the builder function:
+
+- Builder function, from a consuming flake:
+  `inputs."rushi-config".lib.mkRushiFull
+    { system = system; systemPrompt = ./my-prompt.txt; }`
+
+`systemPrompt` (default null) accepts:
+
+| Value | Meaning |
+|---|---|
+| `null` (default) | The built-in `system-prompt.txt` |
+| a string | The prompt text, used verbatim |
+| a path or text-file derivation | Read as a file (for example `./my-prompt.txt` in the consuming flake, or `pkgs.writeText` result) |
+
+The override is a build-time value, so it is exposed on
+`lib.mkRushiFull` only. The prebaked `packages` attrs
+(`.#rushi-full`, `.#rushi`, `.#rushi-tui`) always carry the
+built-in prompt. One parameter covers both the configured
+`rushi` package and the `rushi-tui` package, because the two
+share one generated config.
+
 ## Troubleshooting: external hooks not firing
 
 Symptom: session events show
