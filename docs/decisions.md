@@ -712,3 +712,26 @@ consumer-side builder function (`lib.mkRushiFull`), mirroring the
 Verified by evaluation: the default build's `[system_prompt].text`
 still reads `system-prompt.txt`. A string override and a path
 override both land in the generated `config.toml`.
+
+## `bin/log` dropped in buildEnv-merged devshells: filed rushi#57 (2026-10-25)
+
+**Problem.** The devshell `bin/` (the `devshell-dir` merged by `buildEnv`)
+silently drops the kernel `log` stage binary.
+The other 16 rushi binaries survive the merge.
+`log` is not on the devshell `PATH`.
+
+**Root cause.** The nixpkgs buildEnv builder hard-codes a skip for any
+file named `log`. The source is
+`pkgs/build-support/buildenv/builder.pl` (upstream master, line 151):
+`$baseName eq "log"`. The builder treats `log` as a stray build log.
+The `rushi-full` store object still contains `bin/log`.
+Only the merge drops it. This is not a stale store or a build bug.
+
+**Filed.** `rushi#57` (kernel): adopt a tool-name policy that avoids
+buildEnv reserved names, or document the devshell caveat.
+A `bin/log` alias does not help. buildEnv drops the alias too.
+
+**Impact.** In the devshell, direct `log` calls fail.
+The `rushi` loop still resolves its own tools from the package layout.
+Consumer-side workaround if the name stays: a `shellHook` symlink of
+`rushi-full/bin/log` into the devshell `bin/`.
