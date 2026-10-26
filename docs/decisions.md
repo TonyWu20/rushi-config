@@ -923,3 +923,37 @@ d8cjq1…). `lib.mkRushiFull` without the override equals
 `packages.default`. An override build changes only the
 overridden lines of the rendered `config.toml` (a two-key
 override diffs two lines against the default package).
+
+## Ext selection option on lib.mkRushiFull (2026-10-27)
+
+**Principle.** The ext set (tools, UI extensions, hooks) is a
+consumer value, not a repo constant. The nixvim model: the
+consumer owns plugin selection; the flake only assembles.
+This repo mirrors it on the builder path.
+
+**Decision.** `lib.mkRushiFull` gains `exts ? null`. The
+value is an attrset `{ extTools, extUi, extHooks }` of ext
+packages for the target system (the shape config/exts.nix
+returns). It replaces the repo default table (config/exts.nix,
+from the flake's pinned ext inputs). null keeps the default
+table. `enableTerminalBrowser` gates the default table only.
+The table is computed once in build.nix (L3) and passed to
+configured.nix and rushi-full.nix (L2). The inputs bag and
+the flag no longer cross into the L2 files.
+
+- The consumer pins its own ext flake inputs and passes the
+  packages. The ext set is consumer-owned.
+- Consumer usage: `lib.mkRushiFull
+  { system = …; exts = { extTools = [ … ]; extUi = [ … ];
+  extHooks = [ … ]; }; }`
+
+**Verified.** The seven `.#packages.x86_64-linux` attrs keep
+their store paths (a null exts keeps the default table). A
+consumer ext set without the mineru tool changes the store
+path, and the rendered `config.toml` `extension_tool_paths`
+drops the mineru entry.
+
+**Note.** The NixOS / home-manager module side still only
+accepts a prebuilt `package` derivation. The kernel issue
+draft for declarative `programs.rushi` options is
+docs/rushi-issue-declarative-module-options.md.

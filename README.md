@@ -189,6 +189,32 @@ the built-in defaults. One parameter covers both the
 configured `rushi` package and the `rushi-tui` package,
 because the two share one generated config.
 
+## Ext selection
+
+The ext set is data. The default set is the declare-once
+table in `config/exts.nix`, built from this flake's pinned
+ext inputs. A consumer picks their own ext set through the
+builder:
+
+- Builder function, from a consuming flake (the ext packages
+  come from the consumer's own pinned ext flake inputs):
+  `inputs."rushi-config".lib.mkRushiFull
+    { system = system;
+      exts = {
+        extTools = [ myExtInputs."rushi-obscura-web-access".packages."x86_64-linux"."web-fetch" … ];
+        extUi = [ myExtInputs."rushi-statusline".packages."x86_64-linux".statusline … ];
+        extHooks = [ … ];
+      }; }`
+
+`exts` (default null) is an attrset `{ extTools, extUi,
+extHooks }` of ext packages for the target system. It
+replaces the default table. null keeps the default table.
+The consumer pins its own ext flake inputs and passes the
+packages, so the ext set is consumer-owned.
+
+The `enableTerminalBrowser` flag gates the default table
+only. A consumer ext set decides the ext set.
+
 ## Troubleshooting: external hooks not firing
 
 Symptom: session events show
