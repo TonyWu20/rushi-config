@@ -28,8 +28,9 @@
 # File layout: flake.nix holds the flake inputs and the outputs
 # wiring. The config side (the exts table + the NixOS-style
 # config module) lives in config-module.nix. The build side
-# lives in build.nix (the per-system orchestrator) and the
-# role files it wires: tool-paths.nix, tui-compat.nix,
+# lives in build.nix. That file shows two things: how the
+# config is written and the full package. The role files
+# behind it: configured.nix, tool-paths.nix, tui-compat.nix,
 # tui-full.nix, and rushi-full.nix.
 #
 
@@ -170,12 +171,11 @@
 
       # The per-system build. buildForSystem hands the flake's
       # named flake inputs, the target system, and the two
-      # consumer flags to build.nix. That file picks the
-      # config-side instantiation and wires the role files
-      # (tool-paths.nix, tui-compat.nix, tui-full.nix,
-      # rushi-full.nix) into the per-system package attrset.
-      # flake.nix keeps a concise view of the flake inputs and
-      # the outputs wiring.
+      # consumer flags to build.nix. That file shows the two
+      # build products: how the config is written
+      # (configured.nix) and the full package
+      # (rushi-full.nix). flake.nix keeps a concise view of the
+      # flake inputs and the outputs wiring.
       #
       # The consumer-side flag `enableTerminalBrowser` (default
       # false) picks the config-side instantiation. The default
