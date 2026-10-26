@@ -86,8 +86,10 @@ fields are bare binary names. The hook binaries are bundled into
 `$out/hooks` by `lib.mkRushi`, and the kernel resolves them from
 there at runtime.
 The build side lives in `build.nix` (the per-system
-orchestrator) and the role files it wires: `tool-paths.nix`,
-`tui-compat.nix`, `tui-full.nix`, and `rushi-full.nix`.
+orchestrator). That file shows two things: how the config is
+written (`configured.nix`) and the full package
+(`rushi-full.nix`). The role files behind them:
+`tool-paths.nix`, `tui-compat.nix`, and `tui-full.nix`.
 `flake.nix` calls `build.nix` through the `buildForSystem`
 wrapper. The flake inputs cross the boundary by name.
 

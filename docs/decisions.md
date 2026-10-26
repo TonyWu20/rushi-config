@@ -805,3 +805,37 @@ devShell evaluates.
 sees the flake source as the Git tree. An untracked file is
 invisible to flake evaluation. This note also holds for
 `build.nix` and `config-module.nix`.
+
+## Flatten build.nix to two bindings (2026-10-27)
+
+**Decision.** The `let` in build.nix had 12 bindings. They
+were plumbing: the exts lookup, the system packages, the
+stdenvs, the upstream lookups, the TUI bridge, the tool
+paths, and the TUI package. Only two computations belong in
+that file: how the config is written and the full package.
+Now:
+
+- configured.nix (new) owns the config write. It pulls in
+  its own prerequisites: the config side, the exts table,
+  the system packages, the TUI bridge, and the tool paths.
+  The last call is the lib.mkRushi call.
+- rushi-full.nix now owns the pieces it merges. It calls
+  tui-full.nix itself and looks up the raw goal seeder. It
+  returns { rushiFull, tuiFull } so the per-system attrset
+  can alias the TUI piece.
+- build.nix has a two-binding `let`: `configured` and
+  `full`. Everything else lives in the role files.
+
+**Rationale.** The maintainer reads build.nix for two
+things: how the config is written and the full package. The
+12-binding let hid both.
+
+**Verified.** No derivation argument changed, so all seven
+`.#packages.x86_64-linux` attrs keep their store paths
+(q4rza4…, kq87r5…, p0nlp5…, 6fl6xw…, d8cjq1…). The
+`lib.mkRushiFull` builder resolves both flag variants. The
+devShell evaluates.
+
+**Note.** `configured.nix` must stay Git-tracked. Nix sees
+the flake source as the Git tree. An untracked file is
+invisible to flake evaluation.
