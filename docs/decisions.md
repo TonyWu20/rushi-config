@@ -877,3 +877,49 @@ devShell evaluates.
 **Note.** The new `config/` data files must stay Git-tracked.
 Nix sees the flake source as the Git tree. An untracked file
 is invisible to flake evaluation.
+
+## Config override option on lib.mkRushiFull (2026-10-27)
+
+**Principle.** The generated config values (model, limits,
+loop, tui display) are consumer values, not repo constants. A
+consumer that needs different values re-builds through the
+builder, with an override on top. This mirrors the
+`systemPrompt` precedent (a free build-time consumer value
+lives on `lib.mkRushiFull`, not prebaked into
+`packages.<system>`).
+
+**Decision.** `lib.mkRushiFull` gains `configOverride ? null`.
+The value is an attrset recursively merged on top of the
+config section (`lib.recursiveUpdate`: the override's keys
+win, the rest is kept). It covers the `[active]`, `[model]`,
+`[limits]`, `[paths]`, `[hooks]`, `[loop]`, `[system_prompt]`,
+and `[tui]` sections. null keeps the built-in defaults. The
+merge happens in `configured.nix` (step 5). The TUI package
+reuses the merged value, so both packages carry the override.
+The prebaked `packages` attrs stay byte-identical, because a
+null override merges with the empty attrset.
+
+- `buildForSystem` and `lib.mkRushiFull` thread the
+  parameter to `configured.nix`.
+- Consumer usage:
+  `inputs."rushi-config".lib.mkRushiFull
+    { system = system;
+      configOverride = {
+        limits.bash_timeout_max = 300;
+        model."Qwen3.8-27B-NVFP4-RTX5090-DFlash2".base_url
+          = "http://gpu0:8080";
+      }; }`
+
+**Note.** A shallow merge (`//`) is a footgun here. An
+override of the form
+`{ config = { limits = { ... }; }; }` replaces the whole
+config section, and the kernel fills the missing keys with
+its own defaults. The recursive merge keeps the rest of the
+section.
+
+**Verified.** The seven `.#packages.x86_64-linux` attrs keep
+their store paths (q4rza4…, kq87r5…, p0nlp5…, 6fl6xw…,
+d8cjq1…). `lib.mkRushiFull` without the override equals
+`packages.default`. An override build changes only the
+overridden lines of the rendered `config.toml` (a two-key
+override diffs two lines against the default package).

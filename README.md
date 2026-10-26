@@ -157,6 +157,38 @@ built-in prompt. One parameter covers both the configured
 `rushi` package and the `rushi-tui` package, because the two
 share one generated config.
 
+## Config override
+
+The generated config's sections are data
+(`config/rushi-config.nix`). A consumer can override any of
+them through the builder function:
+
+- Builder function, from a consuming flake:
+  `inputs."rushi-config".lib.mkRushiFull
+    { system = system;
+      configOverride = {
+        limits.bash_timeout_max = 300;
+        model."my-model".base_url = "http://gpu0:8080";
+      }; }`
+
+`configOverride` (default null) is an attrset recursively
+merged on top of the config section
+(`lib.recursiveUpdate`: the override's keys win, the rest is
+kept). It covers the `[active]`, `[model]`, `[limits]`,
+`[paths]`, `[hooks]`, `[loop]`, `[system_prompt]`, and `[tui]`
+sections.
+
+| Value | Meaning |
+|---|---|
+| `null` (default) | The built-in defaults in `config/rushi-config.nix` |
+| an attrset | Recursively merged on top of the config section. The override's keys win. The rest of the defaults is kept |
+
+The override is a build-time value, so it is exposed on
+`lib.mkRushiFull` only. The prebaked `packages` attrs carry
+the built-in defaults. One parameter covers both the
+configured `rushi` package and the `rushi-tui` package,
+because the two share one generated config.
+
 ## Troubleshooting: external hooks not firing
 
 Symptom: session events show
