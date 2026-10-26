@@ -839,3 +839,41 @@ devShell evaluates.
 **Note.** `configured.nix` must stay Git-tracked. Nix sees
 the flake source as the Git tree. An untracked file is
 invisible to flake evaluation.
+
+## Layer hierarchy for the nix files (2026-10-27)
+
+**Decision.** The nix files were peers. Sibling cross-
+references made every let binding a jump. Now the files are
+layers. A file imports lower layers only, never a sibling:
+
+- L4 `flake.nix`: the flake inputs + outputs wiring.
+- L3 `build.nix`: the per-system entry (two bindings).
+- L2 `configured.nix` (the config write) and `rushi-full.nix`
+  (the full package).
+- L1 `tool-paths.nix`, `tui-compat.nix`, `tui-full.nix`:
+  the build mechanisms.
+- L0 `config/`: the declarative data: `exts.nix`,
+  `hook-windows.nix`, `native-tools.nix` (new), and
+  `rushi-config.nix` (new).
+
+**The config content is now data.** `config/rushi-config.nix`
+is the generated `rushi` config value, read top to bottom. It
+was the body of a nested NixOS module function inside
+`config-module.nix`. That file is deleted. The NixOS module
+wrapper is a 3-line lambda inside `configured.nix`. The
+native tool catalog moved to `config/native-tools.nix`.
+
+**configured.nix reads top-down.** Each step is one import of
+a lower-layer file: the tool catalog, the ext table, the TUI
+bridge, the tool paths, the config value. Step 6 is the
+lib.mkRushi call.
+
+**Verified.** No derivation argument changed, so all seven
+`.#packages.x86_64-linux` attrs keep their store paths
+(q4rza4…, kq87r5…, p0nlp5…, 6fl6xw…, d8cjq1…). The
+`lib.mkRushiFull` builder resolves both flag variants. The
+devShell evaluates.
+
+**Note.** The new `config/` data files must stay Git-tracked.
+Nix sees the flake source as the Git tree. An untracked file
+is invisible to flake evaluation.

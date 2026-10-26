@@ -78,28 +78,35 @@ Notes:
 
 ## Config
 
-The `configModule` in `config-module.nix` (imported by `flake.nix`)
-mirrors `config-real.toml` from the kernel checkout. The declare-once
-`exts` table lives in `config/exts.nix`. The `[hooks]` defs and
-pipeline tables live in `config/hook-windows.nix`. Hook `command`
-fields are bare binary names. The hook binaries are bundled into
-`$out/hooks` by `lib.mkRushi`, and the kernel resolves them from
-there at runtime.
-The build side lives in `build.nix` (the per-system
-orchestrator). That file shows two things: how the config is
-written (`configured.nix`) and the full package
-(`rushi-full.nix`). The role files behind them:
-`tool-paths.nix`, `tui-compat.nix`, and `tui-full.nix`.
-`flake.nix` calls `build.nix` through the `buildForSystem`
-wrapper. The flake inputs cross the boundary by name.
+The config content is data. `config/rushi-config.nix` is the
+generated `rushi` config value, read top to bottom (the
+[active], [model], [limits], [paths], [hooks], [loop],
+[system_prompt], and [tui] sections). It mirrors
+`config-real.toml` from the kernel checkout. The declare-once
+`exts` table lives in `config/exts.nix`. The `[hooks]` defs
+and pipeline tables live in `config/hook-windows.nix`. The
+native tool catalog lives in `config/native-tools.nix`. Hook
+`command` fields are bare binary names. The hook binaries are
+bundled into `$out/hooks` by `lib.mkRushi`, and the kernel
+resolves them from there at runtime.
+
+The nix files form a layer hierarchy (the map is in the
+flake.nix header). A file imports lower layers only.
+`build.nix` (L3) shows two things: how the config is written
+(`configured.nix`, L2) and the full package (`rushi-full.nix`,
+L2). The mechanism files (L1): `tool-paths.nix`,
+`tui-compat.nix`, `tui-full.nix`. The data files (L0):
+`config/*.nix`. `flake.nix` calls `build.nix` through the
+`buildForSystem` wrapper. The flake inputs cross the boundary
+by name.
 
 ## Tool-set variants
 
-The `nativeToolNames` list at the top of `config-module.nix` is
+The `nativeToolNames` list in `config/native-tools.nix` is
 the native tool catalog. It is `[ "bash" ]`. Every package ships
 a `tools.manifest` with `enabled = [ "bash" ]` and one
 `native_tool_paths` entry. Edit that list to expose more native
-tools. The `configModule` `toolNames` parameter accepts a
+tools. The `rushi-config.nix` `toolNames` parameter accepts a
 per-build subset for future variants. The ext tools, hooks, and
 UI extensions are unchanged by the native tool set.
 
