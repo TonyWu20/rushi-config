@@ -764,3 +764,44 @@ path. The devShell output evaluates too.
 **Note.** `build.nix` must stay Git-tracked. Nix sees the flake
 source as the Git tree. An untracked file is invisible to flake
 evaluation. This note also holds for `config-module.nix`.
+
+## Split the build side into role files (2026-10-27)
+
+**Decision.** The build side split into role files, one
+purpose each. `tool-paths.nix` holds the absolute store tool
+paths. `tui-compat.nix` holds the bin/tui transition bridge.
+`tui-full.nix` holds the self-contained TUI derivation and
+the ext ui copy script. `rushi-full.nix` holds the combined
+package. `build.nix` is now a thin orchestrator. The cryptic
+bindings were renamed: `c` to `configSide`, `e` to
+`extsForSystem`, `mk` to `configured`, `kernelRaw` to
+`rawKernel`, `rushiGoalPkg` to `rushiGoal`. The `extUiPkgs`
+and `extToolPkgs` aliases were dropped. The exts table is
+read by key.
+
+**Also dropped.** The duplicate `mkTui` `mkRushi` call. It
+was byte-identical to `mk`. The TUI config file reuses
+`configured.config`. The `cfg`/`cfgTb` double instantiation
+collapsed to one import. The flag selects the `tbEnabled`
+value. The shell loop variable `t` was renamed to `entry`.
+
+**Rationale.** The first extraction moved the build section
+without changing it. One file carried five purposes,
+single-letter bindings, and `inherit inputs` hid what each
+piece did. The role split makes each piece locatable and
+names the bindings after their role.
+
+**Verified.** The `rushi` and `rushi-kernel` attrs keep
+their store paths (their arguments were unchanged). The
+`rushi-full`, `rushi-tui`, and `rushi-full-tb` attrs got
+new store paths: the shell variable rename changes the
+installPhase text. The built packages compare identical:
+`diff -r` of the old and new `rushi-tui` trees and of the
+old and new `rushi-full` trees reports no difference. The
+`lib.mkRushiFull` builder resolves both flag variants. The
+devShell evaluates.
+
+**Note.** The new role files must stay Git-tracked. Nix
+sees the flake source as the Git tree. An untracked file is
+invisible to flake evaluation. This note also holds for
+`build.nix` and `config-module.nix`.
