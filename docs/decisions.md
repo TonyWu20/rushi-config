@@ -735,3 +735,32 @@ A `bin/log` alias does not help. buildEnv drops the alias too.
 The `rushi` loop still resolves its own tools from the package layout.
 Consumer-side workaround if the name stays: a `shellHook` symlink of
 `rushi-full/bin/log` into the devshell `bin/`.
+
+## Extract the build side into build.nix (2026-10-27)
+
+**Decision.** The per-system store assembly moved from `flake.nix`
+to `build.nix`. That is the `buildForSystem` `let` block: the
+`tuiPkg` transition bridge, the `mkRushi` calls, the absolute store
+tool paths, and the `tuiFull` and `rushiFull` derivations.
+`flake.nix` now holds only the flake inputs and the outputs wiring.
+It calls `build.nix` through a one-line `buildForSystem` import.
+The moved code is verbatim, with its comments.
+
+**Rationale.** The big `let ... in` inside `outputs` hid the build
+graph. The config-side split (config-module.nix) left the build
+section as the last big blob. This split keeps flake.nix a short
+flake-outputs view.
+
+**Verified.** All seven `.#packages.x86_64-linux` attrs give the
+same store path before and after the split. The attrs are default,
+rushi-full, rushi, rushi-kernel, rushi-tui, tui, and rushi-full-tb.
+So the generated derivations are unchanged. `nix-instantiate
+--parse` passes on both files. The consumer-side builder still
+resolves: `lib.mkRushiFull { system = "x86_64-linux"; }` gives the
+default `rushi-full` store path. The flag build
+(`enableTerminalBrowser = true`) gives the prebaked `rushi-full-tb`
+path. The devShell output evaluates too.
+
+**Note.** `build.nix` must stay Git-tracked. Nix sees the flake
+source as the Git tree. An untracked file is invisible to flake
+evaluation. This note also holds for `config-module.nix`.

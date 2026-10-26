@@ -85,6 +85,9 @@ pipeline tables live in `config/hook-windows.nix`. Hook `command`
 fields are bare binary names. The hook binaries are bundled into
 `$out/hooks` by `lib.mkRushi`, and the kernel resolves them from
 there at runtime.
+The build side (the per-system store assembly) lives in
+`build.nix`. `flake.nix` imports it through a one-line
+`buildForSystem` import.
 
 ## Tool-set variants
 
