@@ -18,8 +18,8 @@
 # `lib.mkRushiFull` builder function.
 
 {
-  # The flake's full inputs attrset. It forwards to the data
-  # layer only: the ext table selects its ext flake inputs from
+  # The flake's full inputs attrset. It feeds the ext table
+  # only: config/exts.nix selects its ext flake inputs from
   # it.
   inputs,
   # The nixpkgs input (the shared system packages).
@@ -38,12 +38,20 @@
   # `enableTerminalBrowser` (default false) picks the config-side
   # instantiation. The default build keeps the optional
   # terminal-browser tool off. The enabled build adds the
-  # terminal-browser row to the exts table.
+  # terminal-browser row to the default exts table. The flag
+  # gates the default table only; a consumer ext set (the
+  # `exts` parameter) decides the ext set.
   enableTerminalBrowser ? false,
   # null keeps the built-in system-prompt.txt. A string is the
   # inline prompt text. A path or text-file derivation is read
   # as a file.
   systemPrompt ? null,
+  # The consumer ext set: an attrset { extTools, extUi,
+  # extHooks } of ext packages for the target system. It
+  # replaces the repo default exts table (config/exts.nix,
+  # from the flake's pinned ext inputs). null keeps the
+  # default table.
+  exts ? null,
   # An attrset recursively merged on top of the config
   # section of the default rushi config value
   # (lib.recursiveUpdate: the override's keys win, the
@@ -51,22 +59,32 @@
   configOverride ? null,
 }:
 let
+  # The per-system ext table: the consumer ext set or the
+  # repo default (config/exts.nix, data).
+  extsForSystem =
+    if exts == null then
+    import ./config/exts.nix {
+      inherit inputs;
+      tbEnabled = enableTerminalBrowser;
+    } system
+    else
+    exts;
   # How the config is written: the configured kernel.
   # The lib.mkRushi call, with the config value
   # (config/rushi-config.nix), the system-prompt override, and
   # the absolute store tool paths. The TUI bridge and the tool
   # paths are pulled in by that file itself.
   configured = import ./configured.nix {
-    inherit inputs nixpkgs fenix rushiKernel rushiTui system
-      enableTerminalBrowser systemPrompt configOverride;
+    inherit nixpkgs fenix rushiKernel rushiTui system
+      extsForSystem systemPrompt configOverride;
   };
   # The full rushi package: the configured kernel + the
   # self-contained TUI + the headless goal seeder in one store
   # object. It also returns the TUI piece it bundles, so the
   # attrset below can alias it.
   full = import ./rushi-full.nix {
-    inherit inputs nixpkgs fenix rushiKernel rushiTui rushiGoalMode
-      system enableTerminalBrowser configured;
+    inherit nixpkgs fenix rushiKernel rushiTui rushiGoalMode
+      system extsForSystem configured;
   };
 in
 {

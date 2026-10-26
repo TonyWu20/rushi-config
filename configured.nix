@@ -4,25 +4,25 @@
 #
 #   1. nativeToolNames   the native tool catalog
 #                        (config/native-tools.nix, data).
-#   2. extsForSystem     the ext table for this system
-#                        (config/exts.nix, data).
-#   3. tuiCompat         the bin/tui bridge derivation
+#   2. tuiCompat         the bin/tui bridge derivation
 #                        (tui-compat.nix).
-#   4. toolPaths         the absolute store tool paths
+#   3. toolPaths         the absolute store tool paths
 #                        (tool-paths.nix).
-#   5. rushiConfig       the config content
-#                        (config/rushi-config.nix, data).
+#   4. rushiConfig       the config content
+#                        (config/rushi-config.nix, data)
+#                        with the consumer override.
 #
-# Step 6 packages the config: lib.mkRushi (the kernel flake)
+# The ext table for this system (extsForSystem) is a
+# parameter: the repo default (config/exts.nix, data) or a
+# consumer ext set.
+#
+# Step 5 packages the config: lib.mkRushi (the kernel flake)
 # with the config value as the sole NixOS-style module. The
 # result carries .package (the configured kernel) and .config
 # (the rendered config.toml text, shared with the TUI
 # package).
 
 {
-  # The flake's full inputs attrset. It feeds the data layer
-  # only: the ext table selects its ext flake inputs from it.
-  inputs,
   # The nixpkgs input (the shared system packages).
   nixpkgs,
   # The fenix input (the shared Rust toolchain overlay).
@@ -33,9 +33,10 @@
   rushiTui,
   # The target system.
   system,
-  # The consumer-side flag: the enabled build adds the
-  # terminal-browser row to the exts table.
-  enableTerminalBrowser ? false,
+  # The per-system ext table ({ extTools, extUi, extHooks }).
+  # The repo default (config/exts.nix, data) or a consumer
+  # ext set (lib.mkRushiFull `exts`).
+  extsForSystem,
   # null keeps the built-in system-prompt.txt. A string is the
   # inline prompt text. A path or text-file derivation is read
   # as a file.
@@ -55,26 +56,20 @@ let
   };
   # 1. The native tool catalog (a plain list).
   nativeToolNames = [ "bash" ];
-  # 2. The ext table for this system (the data file returns
-  #    { extTools, extUi, extHooks }).
-  extsForSystem = import ./config/exts.nix {
-    inherit inputs;
-    tbEnabled = enableTerminalBrowser;
-  } system;
-  # 3. The TUI binary for the configured package (the
+  # 2. The TUI binary for the configured package (the
   #    transition bridge). RETIRE with tui-compat.nix when
   #    kernel rushi#31 lands.
   tuiCompat = import ./tui-compat.nix {
     stdenv = pkgs.stdenv;
     rawTui = rushiTui.packages.${system}.default;
   };
-  # 4. The absolute store tool paths ({ native, ext }).
+  # 3. The absolute store tool paths ({ native, ext }).
   toolPaths = import ./tool-paths.nix {
     inherit nativeToolNames;
     rawKernel = rushiKernel.packages.${system}.rushi;
     extToolPackages = extsForSystem.extTools;
   };
-  # 5. The config content: the defaults (top-down data,
+  # 4. The config content: the defaults (top-down data,
   # config/rushi-config.nix), plus the consumer override.
   # The tuiPkg argument is the TUI bridge derivation.
   rushiDefaults = import ./config/rushi-config.nix {
@@ -90,7 +85,7 @@ let
       (if configOverride == null then {} else configOverride);
   };
 in
-# 6. The kernel packages the config. The module is the
+# 5. The kernel packages the config. The module is the
 # NixOS-style function lib.mkRushi merges. It contributes the
 # `rushi` fields; the kernel fills the rest (the manifest
 # lists, the package layout).

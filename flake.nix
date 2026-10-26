@@ -206,9 +206,10 @@
           enableTerminalBrowser ? false,
           systemPrompt ? null,
           configOverride ? null,
+          exts ? null,
         }:
         import ./build.nix {
-          inherit inputs system enableTerminalBrowser systemPrompt configOverride;
+          inherit inputs system enableTerminalBrowser systemPrompt configOverride exts;
           # The flake inputs the build section names, stated
           # explicitly at the boundary instead of looked up
           # inside the inputs bag.
@@ -247,7 +248,8 @@
       # (default null) overrides the [system_prompt] text.
       # `configOverride` (default null) recursively merges an
       # attrset on top of the config section of the default
-      # rushi config value.
+      # rushi config value. `exts` (default null) replaces the
+      # repo default exts table with a consumer ext set.
       #
       # From a consuming flake:
       #   inputs."rushi-config".lib.mkRushiFull
@@ -259,6 +261,7 @@
       #         limits.bash_timeout_max = 300;
       #         model.max_output_tokens = 32768;
       #       };
+      #       # exts = { extTools = [ … ]; extUi = [ … ]; extHooks = [ … ]; };
       #     }
       # One-shot from this repo: `nix build .#rushi-full-tb`.
       # Note: the `r` binding below is required. A tight
@@ -277,16 +280,23 @@
         # attrset on top of the config section of the default rushi
         # config value (lib.recursiveUpdate: the override's keys
         # win, the rest is kept). null keeps the built-in defaults.
+        # `exts` (default null) replaces the repo default exts
+        # table (config/exts.nix, from the flake's pinned ext
+        # inputs) with a consumer ext set: an attrset
+        # { extTools, extUi, extHooks } of ext packages. The
+        # consumer pins its own ext flake inputs and passes the
+        # packages, so the ext set is consumer-owned.
         mkRushiFull =
           {
             system,
             enableTerminalBrowser ? false,
             systemPrompt ? null,
             configOverride ? null,
+            exts ? null,
           }:
           let
             r = buildForSystem {
-              inherit system enableTerminalBrowser systemPrompt configOverride;
+              inherit system enableTerminalBrowser systemPrompt configOverride exts;
             };
           in
           r."rushi-full";

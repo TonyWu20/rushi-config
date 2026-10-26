@@ -17,9 +17,6 @@
 # alias the TUI piece as `rushi-tui` / `tui`.
 
 {
-  # The flake's full inputs attrset. It feeds the data layer
-  # only: the ext table selects its ext flake inputs from it.
-  inputs,
   # The nixpkgs input (the shared system packages).
   nixpkgs,
   # The fenix input (the shared Rust toolchain overlay).
@@ -32,21 +29,16 @@
   rushiGoalMode,
   # The target system.
   system,
-  # The consumer-side flag: the enabled build adds the
-  # terminal-browser row to the exts table.
-  enableTerminalBrowser ? false,
+  # The per-system ext table ({ extTools, extUi, extHooks }).
+  # The repo default (config/exts.nix, data) or a consumer
+  # ext set (lib.mkRushiFull `exts`).
+  extsForSystem,
   # The configured kernel result (from configured.nix):
   # .package is the configured kernel, .config is the
   # generated config text the TUI package reuses.
   configured,
 }:
 let
-  # The per-system ext table (config/exts.nix, data): the TUI
-  # package's ext sources and tool packages come from it.
-  extsForSystem = import ./config/exts.nix {
-    inherit inputs;
-    tbEnabled = enableTerminalBrowser;
-  } system;
   # The system packages, with the shared Rust toolchain.
   pkgs = import nixpkgs {
     inherit system;
