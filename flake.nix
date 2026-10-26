@@ -26,9 +26,11 @@
 # `follows` this flake's `rushi-kernel` input, so the `rushi-common`
 # crate and the kernel binary always come from the same source.
 # File layout: flake.nix holds the flake inputs and the outputs
-# wiring. The config side (the exts table + the NixOS-style config
-# module) lives in config-module.nix. The build side (the per-
-# system store assembly) lives in build.nix.
+# wiring. The config side (the exts table + the NixOS-style
+# config module) lives in config-module.nix. The build side
+# lives in build.nix (the per-system orchestrator) and the
+# role files it wires: tool-paths.nix, tui-compat.nix,
+# tui-full.nix, and rushi-full.nix.
 #
 
 {
@@ -166,19 +168,22 @@
       ];
       pkgLib = nixpkgs.lib;
 
-      # The build side (the per-system store assembly) lives in
-      # build.nix. That file imports the config side
-      # (config-module.nix) and the upstream flake packages. It
-      # returns the per-system package attrset. flake.nix keeps a
-      # concise view of the flake inputs and the outputs wiring.
+      # The per-system build. buildForSystem hands the flake's
+      # named flake inputs, the target system, and the two
+      # consumer flags to build.nix. That file picks the
+      # config-side instantiation and wires the role files
+      # (tool-paths.nix, tui-compat.nix, tui-full.nix,
+      # rushi-full.nix) into the per-system package attrset.
+      # flake.nix keeps a concise view of the flake inputs and
+      # the outputs wiring.
       #
-      # buildForSystem is the per-system build. The consumer-side
-      # flag `enableTerminalBrowser` (default false) picks the
-      # config-side instantiation. The default build keeps the
-      # optional terminal-browser tool off. The enabled build adds
-      # the terminal-browser row to the exts table. The
-      # consumer-side value `systemPrompt` (default null) overrides
-      # the [system_prompt] text of the generated config.
+      # The consumer-side flag `enableTerminalBrowser` (default
+      # false) picks the config-side instantiation. The default
+      # build keeps the optional terminal-browser tool off. The
+      # enabled build adds the terminal-browser row to the exts
+      # table. The consumer-side value `systemPrompt` (default
+      # null) overrides the [system_prompt] text of the
+      # generated config.
       buildForSystem =
         {
           system,
@@ -187,6 +192,14 @@
         }:
         import ./build.nix {
           inherit inputs system enableTerminalBrowser systemPrompt;
+          # The flake inputs the build section names, stated
+          # explicitly at the boundary instead of looked up
+          # inside the inputs bag.
+          nixpkgs = inputs.nixpkgs;
+          fenix = inputs.fenix;
+          rushiKernel = inputs."rushi-kernel";
+          rushiTui = inputs."rushi-tui";
+          rushiGoalMode = inputs."rushi-goal-mode";
         };
     in
     {
