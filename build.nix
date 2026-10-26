@@ -1,24 +1,25 @@
 # build.nix — the per-system build entry point for the rushi
 # flake.
 #
-# This file shows the two things a build produces:
+# This file is layer L3 (the layer map is in the flake.nix
+# header). It imports only L2 files. It shows the two things a
+# build produces:
 #
-#   1. How the config is written (configured.nix): lib.mkRushi
-#      + the config module.
+#   1. How the config is written (configured.nix): the config
+#      value into lib.mkRushi.
 #   2. The full rushi package (rushi-full.nix): the configured
 #      kernel + the TUI + the goal seeder in one store object.
 #
-# Everything else (the upstream lookups, the system packages,
-# the tool paths, the TUI piece) lives in the role files and
-# does not appear here.
+# Everything else (the data files, the mechanism files) lives
+# in layers L0-L1 and does not appear here.
 #
 # flake.nix calls this file once per build: the `packages`
 # genAttrs (the default and the enabled builds) and the
 # `lib.mkRushiFull` builder function.
 
 {
-  # The flake's full inputs attrset. It forwards to the config
-  # side only: the ext table selects its ext flake inputs from
+  # The flake's full inputs attrset. It forwards to the data
+  # layer only: the ext table selects its ext flake inputs from
   # it.
   inputs,
   # The nixpkgs input (the shared system packages).
@@ -46,9 +47,10 @@
 }:
 let
   # How the config is written: the configured kernel.
-  # lib.mkRushi + the config module, with the system-prompt
-  # override and the absolute store tool paths. The TUI bridge
-  # and the tool paths are pulled in by that file itself.
+  # The lib.mkRushi call, with the config value
+  # (config/rushi-config.nix), the system-prompt override, and
+  # the absolute store tool paths. The TUI bridge and the tool
+  # paths are pulled in by that file itself.
   configured = import ./configured.nix {
     inherit inputs nixpkgs fenix rushiKernel rushiTui system
       enableTerminalBrowser systemPrompt;

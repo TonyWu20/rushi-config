@@ -17,7 +17,7 @@
 # alias the TUI piece as `rushi-tui` / `tui`.
 
 {
-  # The flake's full inputs attrset. It feeds the config side
+  # The flake's full inputs attrset. It feeds the data layer
   # only: the ext table selects its ext flake inputs from it.
   inputs,
   # The nixpkgs input (the shared system packages).
@@ -41,13 +41,12 @@
   configured,
 }:
 let
-  # The config side: the per-system exts table. The TUI
+  # The per-system ext table (config/exts.nix, data): the TUI
   # package's ext sources and tool packages come from it.
-  configSide = import ./config-module.nix {
+  extsForSystem = import ./config/exts.nix {
     inherit inputs;
     tbEnabled = enableTerminalBrowser;
-  };
-  extsForSystem = configSide.exts system;
+  } system;
   # The system packages, with the shared Rust toolchain.
   pkgs = import nixpkgs {
     inherit system;

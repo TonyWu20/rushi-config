@@ -25,13 +25,24 @@
 # The kernel ref is pinned ONCE, here. The TUI flake's own kernel inputs
 # `follows` this flake's `rushi-kernel` input, so the `rushi-common`
 # crate and the kernel binary always come from the same source.
-# File layout: flake.nix holds the flake inputs and the outputs
-# wiring. The config side (the exts table + the NixOS-style
-# config module) lives in config-module.nix. The build side
-# lives in build.nix. That file shows two things: how the
-# config is written and the full package. The role files
-# behind it: configured.nix, tool-paths.nix, tui-compat.nix,
-# tui-full.nix, and rushi-full.nix.
+# File layout (a hierarchy: a file imports lower layers only,
+# never a sibling):
+#
+#   L4  flake.nix               the flake inputs + outputs
+#                               wiring.
+#   L3  build.nix               the per-system entry: the config
+#                               write + the full package.
+#   L2  configured.nix          the config write (lib.mkRushi).
+#       rushi-full.nix          the full package (the merge).
+#   L1  tool-paths.nix          the absolute store tool paths.
+#       tui-compat.nix         the bin/tui transition bridge.
+#       tui-full.nix           the self-contained TUI package.
+#   L0  config/exts.nix         the ext table (data).
+#       config/hook-windows.nix the [hooks] pipeline (data).
+#       config/native-tools.nix the native tool catalog (data).
+#       config/rushi-config.nix the config content (data).
+#
+# external: the kernel flake's lib.mkRushi (below L0).
 #
 
 {
