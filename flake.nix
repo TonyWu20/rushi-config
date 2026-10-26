@@ -195,14 +195,20 @@
       # table. The consumer-side value `systemPrompt` (default
       # null) overrides the [system_prompt] text of the
       # generated config.
+      # The consumer-side value `configOverride` (default
+      # null) recursively merges an attrset on top of the
+      # config section of the default rushi config value
+      # (lib.recursiveUpdate: the override's keys win, the
+      # rest is kept).
       buildForSystem =
         {
           system,
           enableTerminalBrowser ? false,
           systemPrompt ? null,
+          configOverride ? null,
         }:
         import ./build.nix {
-          inherit inputs system enableTerminalBrowser systemPrompt;
+          inherit inputs system enableTerminalBrowser systemPrompt configOverride;
           # The flake inputs the build section names, stated
           # explicitly at the boundary instead of looked up
           # inside the inputs bag.
@@ -239,6 +245,9 @@
       # is the combined rushi-full package. `enableTerminalBrowser`
       # (default false) adds the terminal-browser tool. `systemPrompt`
       # (default null) overrides the [system_prompt] text.
+      # `configOverride` (default null) recursively merges an
+      # attrset on top of the config section of the default
+      # rushi config value.
       #
       # From a consuming flake:
       #   inputs."rushi-config".lib.mkRushiFull
@@ -246,6 +255,10 @@
       #       system = system;
       #       enableTerminalBrowser = true;
       #       systemPrompt = ./my-prompt.txt;
+      #       configOverride = {
+      #         limits.bash_timeout_max = 300;
+      #         model.max_output_tokens = 32768;
+      #       };
       #     }
       # One-shot from this repo: `nix build .#rushi-full-tb`.
       # Note: the `r` binding below is required. A tight
@@ -260,15 +273,20 @@
         # keeps the built-in system-prompt.txt, a string is inline
         # text, and a path or text-file derivation is read as a
         # file.
+        # `configOverride` (default null) recursively merges an
+        # attrset on top of the config section of the default rushi
+        # config value (lib.recursiveUpdate: the override's keys
+        # win, the rest is kept). null keeps the built-in defaults.
         mkRushiFull =
           {
             system,
             enableTerminalBrowser ? false,
             systemPrompt ? null,
+            configOverride ? null,
           }:
           let
             r = buildForSystem {
-              inherit system enableTerminalBrowser systemPrompt;
+              inherit system enableTerminalBrowser systemPrompt configOverride;
             };
           in
           r."rushi-full";

@@ -44,6 +44,11 @@
   # inline prompt text. A path or text-file derivation is read
   # as a file.
   systemPrompt ? null,
+  # An attrset recursively merged on top of the config
+  # section of the default rushi config value
+  # (lib.recursiveUpdate: the override's keys win, the
+  # rest is kept). null keeps the built-in defaults.
+  configOverride ? null,
 }:
 let
   # How the config is written: the configured kernel.
@@ -53,7 +58,7 @@ let
   # paths are pulled in by that file itself.
   configured = import ./configured.nix {
     inherit inputs nixpkgs fenix rushiKernel rushiTui system
-      enableTerminalBrowser systemPrompt;
+      enableTerminalBrowser systemPrompt configOverride;
   };
   # The full rushi package: the configured kernel + the
   # self-contained TUI + the headless goal seeder in one store

@@ -40,6 +40,13 @@
   # inline prompt text. A path or text-file derivation is read
   # as a file.
   systemPrompt ? null,
+  # An attrset recursively merged on top of the config
+  # section of the default rushi config value
+  # (lib.recursiveUpdate: the override's keys win, the
+  # rest is kept). It covers the [active], [model], [limits],
+  # [paths], [hooks], [loop], [system_prompt], and [tui]
+  # sections. null keeps the built-in defaults.
+  configOverride ? null,
 }:
 let
   pkgs = import nixpkgs {
@@ -47,7 +54,7 @@ let
     overlays = [ fenix.overlays.default ];
   };
   # 1. The native tool catalog (a plain list).
-  nativeToolNames = import ./config/native-tools.nix;
+  nativeToolNames = [ "bash" ];
   # 2. The ext table for this system (the data file returns
   #    { extTools, extUi, extHooks }).
   extsForSystem = import ./config/exts.nix {
@@ -67,11 +74,20 @@ let
     rawKernel = rushiKernel.packages.${system}.rushi;
     extToolPackages = extsForSystem.extTools;
   };
-  # 5. The config content (top-down data). The tuiPkg argument
-  # is the TUI bridge derivation.
-  rushiConfig = import ./config/rushi-config.nix {
+  # 5. The config content: the defaults (top-down data,
+  # config/rushi-config.nix), plus the consumer override.
+  # The tuiPkg argument is the TUI bridge derivation.
+  rushiDefaults = import ./config/rushi-config.nix {
     inherit extsForSystem nativeToolNames toolPaths systemPrompt;
     tuiPkg = tuiCompat;
+  };
+  # The merged config value: the defaults with configOverride
+  # recursively merged on top of the config section
+  # (lib.recursiveUpdate: the override's keys win, the rest
+  # is kept).
+  rushiConfig = rushiDefaults // {
+    config = pkgs.lib.recursiveUpdate rushiDefaults.config
+      (if configOverride == null then {} else configOverride);
   };
 in
 # 6. The kernel packages the config. The module is the
