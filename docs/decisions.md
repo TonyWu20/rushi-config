@@ -957,3 +957,48 @@ drops the mineru entry.
 accepts a prebuilt `package` derivation. The kernel issue
 draft for declarative `programs.rushi` options is
 docs/rushi-issue-declarative-module-options.md.
+
+## Consumer-side config build (2026-10-27)
+
+**Principle.** The nixvim model: the consumer repo owns the
+config data; the flake only assembles. A config value with a
+repo opinion baked in, patched by a consumer override, is the
+anti-pattern. The consumer builds the config from scratch,
+on top of the kernel's neutral defaults.
+
+**Decision.** `lib.mkRushiFull` takes `modules ? [ ]`: the
+consumer's declarative rushi config (a list of NixOS-style
+modules that set the `rushi.*` options, the
+nixvim-config/default.nix shape). The modules merge (NixOS
+module semantics) on top of the kernel's neutral defaults
+(lib/rushi-defaults.nix in the kernel repo). No rushi-config
+repo config joins the consumer path.
+
+- `configOverride` and the `systemPrompt` builder parameter
+  are dropped. The prompt is the config value
+  `rushi.config.system_prompt.text` in the consumer module.
+- `config/rushi-config.nix` becomes the repo's data module:
+  the `rushi.*` option values the prebaked `packages` attrs
+  build. It is used only for the repo's own deployment
+  (`modules = null` in configured.nix).
+- The builder modules (exts, tui) always come first in the
+  module list. The config modules come last (later modules
+  win).
+- The `exts` parameter stays: the ext catalog is a package
+  list, not config opinion. null is the repo default table;
+  a value is the consumer's own set.
+
+**Verified.** The seven `.#packages.x86_64-linux` attrs keep
+their store paths (the module list yields the same option
+values as the old single value). A consumer module build
+shows only the consumer's values: model, limits, and prompt
+come from the module. The repo model, prompt, and hook
+windows are absent. The default ext catalog stays (the
+documented default).
+
+**Note.** Supersedes the "System prompt override option" and
+the "Config override option" entries (both 2026-10-17 and
+2026-10-27). The kernel issue draft
+(docs/rushi-issue-declarative-module-options.md) stays
+valid: the module side should expose the same `modules`
+surface.

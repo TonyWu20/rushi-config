@@ -40,7 +40,7 @@
 #   L0  config/exts.nix         the ext table (data).
 #       config/hook-windows.nix the [hooks] pipeline (data).
 #       config/native-tools.nix the native tool catalog (data).
-#       config/rushi-config.nix the config content (data).
+#       config/rushi-config.nix the repo's data module (rushi.* values).
 #
 # external: the kernel flake's lib.mkRushi (below L0).
 #

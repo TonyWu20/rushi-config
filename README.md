@@ -78,8 +78,9 @@ Notes:
 
 ## Config
 
-The config content is data. `config/rushi-config.nix` is the
-generated `rushi` config value, read top to bottom (the
+The repo's own config is data. `config/rushi-config.nix` is
+the repo's data module: the `rushi.*` option values the
+prebaked `packages` attrs build, read top to bottom (the
 [active], [model], [limits], [paths], [hooks], [loop],
 [system_prompt], and [tui] sections). It mirrors
 `config-real.toml` from the kernel checkout. The declare-once
@@ -88,7 +89,11 @@ and pipeline tables live in `config/hook-windows.nix`. The
 native tool catalog lives in `config/native-tools.nix`. Hook
 `command` fields are bare binary names. The hook binaries are
 bundled into `$out/hooks` by `lib.mkRushi`, and the kernel
-resolves them from there at runtime.
+resolves them from there at runtime. The consumer does not
+take this config. The consumer writes their own declarative
+module (the nixvim model). The builder merges it on top of
+the kernel's neutral defaults (the Config (consumer side)
+section).
 
 The nix files form a layer hierarchy (the map is in the
 flake.nix header). A file imports lower layers only.
@@ -132,62 +137,46 @@ bundled in the package, and the generated config's
 `extension_tool_paths` names the tool's store path. The disabled
 build is byte-identical to the pre-option package.
 
-## System prompt
+## Config (consumer side)
 
-The generated config's `[system_prompt].text` section defaults to
-the built-in `system-prompt.txt` at the repo root. A consumer can
-override it through the builder function:
-
-- Builder function, from a consuming flake:
-  `inputs."rushi-config".lib.mkRushiFull
-    { system = system; systemPrompt = ./my-prompt.txt; }`
-
-`systemPrompt` (default null) accepts:
-
-| Value | Meaning |
-|---|---|
-| `null` (default) | The built-in `system-prompt.txt` |
-| a string | The prompt text, used verbatim |
-| a path or text-file derivation | Read as a file (for example `./my-prompt.txt` in the consuming flake, or `pkgs.writeText` result) |
-
-The override is a build-time value, so it is exposed on
-`lib.mkRushiFull` only. The prebaked `packages` attrs
-(`.#rushi-full`, `.#rushi`, `.#rushi-tui`) always carry the
-built-in prompt. One parameter covers both the configured
-`rushi` package and the `rushi-tui` package, because the two
-share one generated config.
-
-## Config override
-
-The generated config's sections are data
-(`config/rushi-config.nix`). A consumer can override any of
-them through the builder function:
+The config is built from the consumer side. In the nixvim
+model, the consumer repo owns the config data, and the flake
+only assembles. `lib.mkRushiFull` takes `modules`: the
+consumer's declarative rushi config (a list of NixOS-style
+modules, the `nixvim-config/default.nix` shape). The modules
+merge (NixOS module semantics) on top of the kernel's
+neutral defaults. No rushi-config repo config is involved.
 
 - Builder function, from a consuming flake:
   `inputs."rushi-config".lib.mkRushiFull
     { system = system;
-      configOverride = {
-        limits.bash_timeout_max = 300;
-        model."my-model".base_url = "http://gpu0:8080";
-      }; }`
+      modules = [ ./my-rushi-config.nix ]; }`
 
-`configOverride` (default null) is an attrset recursively
-merged on top of the config section
-(`lib.recursiveUpdate`: the override's keys win, the rest is
-kept). It covers the `[active]`, `[model]`, `[limits]`,
-`[paths]`, `[hooks]`, `[loop]`, `[system_prompt]`, and `[tui]`
-sections.
+The module is data, read top-down. It sets the `rushi.*`
+options (the kernel option schema):
 
-| Value | Meaning |
-|---|---|
-| `null` (default) | The built-in defaults in `config/rushi-config.nix` |
-| an attrset | Recursively merged on top of the config section. The override's keys win. The rest of the defaults is kept |
+```
+{ config, lib, pkgs, ... }:
+{
+  rushi.config.model = { api = "responses"; max_output_tokens = 32768; };
+  rushi.config.limits = { bash_timeout_max = 300; };
+  rushi.config.system_prompt.text = "…";
+  rushi.config.hooks = { … };
+}
+```
 
-The override is a build-time value, so it is exposed on
-`lib.mkRushiFull` only. The prebaked `packages` attrs carry
-the built-in defaults. One parameter covers both the
-configured `rushi` package and the `rushi-tui` package,
-because the two share one generated config.
+`modules = [ ]` (the default) is the kernel's neutral
+defaults plus the default ext catalog. The repo's own config
+(model table, prompt, hook windows, limits tuning) ships in
+the prebaked `packages` attrs only. A consumer who wants to
+start from it copies the data files
+(config/rushi-config.nix, config/hook-windows.nix) into
+their own repo.
+
+The `[system_prompt].text` value is one of the config
+sections. A consumer sets it in their module (a string, or a
+file read in the module body). The prebaked `packages` attrs
+carry the built-in `system-prompt.txt` at the repo root.
 
 ## Ext selection
 
