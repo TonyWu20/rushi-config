@@ -1002,3 +1002,46 @@ the "Config override option" entries (both 2026-10-17 and
 (docs/rushi-issue-declarative-module-options.md) stays
 valid: the module side should expose the same `modules`
 surface.
+
+## exts placement: the `rushiExt` contract (2026-10-27)
+
+**Decision (user).** Ext sourcing stays flake inputs. An
+ext is a flake distribution, and the consumer declares
+their exts in their own flake inputs. That is the
+convenience the consumer keeps. This differs from nixvim:
+most neovim plugins have no distribution flake, so nixvim
+fetches plugin sources internally.
+
+**Problem.** No one has built the typed placement bridge.
+The kernel `mkRushi` takes raw `rushi.external_*` lists.
+rushi-config's `exts` parameter takes a raw bucket table.
+The consumer hand-routes each ext package into a bucket.
+The bucket knowledge already exists in the producer's
+`meta.rushi` (rushi#13). It is not aggregated.
+
+**Design.** A per-ext-flake contract attribute
+`rushiExt = system: { tools; ui; hooks; }`, derived from
+`meta.rushi` by a kernel lib helper
+(`lib.rushiExtBuckets`). A consumer-side fold
+(`lib.unionRushiExt`) turns a list of ext flakes into
+buckets. `lib.mkRushiFull` accepts `exts` as a list of
+ext flake inputs. The raw bucket table stays as the
+migration shape. The layers:
+
+- The kernel lib = the mechanism: the schema, `mkRushi`,
+  `rushiExtBuckets`, `unionRushiExt`, the fetch helpers.
+- The rushi-config lib = the policy: the default catalog,
+  the TUI merge, the goal seeder, the one-call builder.
+- The consumer flake = the data: ext inputs + config
+  modules + one builder call. No bucket routing.
+
+**Gate.** The builder change is additive. The `exts ?
+null` default path is untouched. The seven prebaked
+store paths stay byte-identical. The flake-list form
+activates only when a consumer passes it.
+
+**Open (user call).** 1) The contract name `rushiExt`.
+2) Keep the raw bucket table as a migration shape until
+the ext repos adopt the contract. 3) Update the ten ext
+repos to add `rushiExt` (no local checkouts exist. It is
+one line per flake using the kernel helper).
