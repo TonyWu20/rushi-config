@@ -11,9 +11,10 @@
 # from the kernel checkout.
 #
 # The builder-owned fields are not here: the ext packages
-# (rushi.external_*) come from the exts table (config/exts.nix,
-# via the builder's exts module), and the TUI binary
-# (rushi.tui) is wired by the builder's tui module.
+# (rushi.external_*) come from the builder's exts module
+# (the consumer ext set: null, a flake-input list, or the raw
+# table), and the TUI binary (rushi.tui) is wired by the
+# builder's tui module.
 #
 # A consumer does not take this file. The consumer builder
 # (lib.mkRushiFull) merges the consumer's own modules on top of

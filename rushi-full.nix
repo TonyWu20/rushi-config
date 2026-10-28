@@ -1,10 +1,10 @@
 # rushi-full.nix — the full rushi package.
 #
-# The configured kernel + the self-wired TUI + the headless
-# goal seeder in one store object. One import (or this
-# flake's devShell) puts the version-locked `rushi` +
-# `rushi-tui` + `rushi-goal` set on PATH, so the TUI can no
-# longer drive an ambient or stale kernel resolved from PATH.
+# The configured kernel + the self-wired TUI in one store
+# object. One import (or this flake's devShell) puts the
+# version-locked `rushi` + `rushi-tui` pair on PATH, so the
+# TUI can no longer drive an ambient or stale kernel
+# resolved from PATH.
 # The two inputs' root config.toml files are byte-identical
 # (one evaluation, the same absolute store tool paths) and
 # their ui_extensions/ dirs bundle the same ext packages, so
@@ -25,13 +25,12 @@
   rushiKernel,
   # The TUI flake input (the raw TUI package).
   rushiTui,
-  # The goal seeder flake input (the headless `rushi-goal` binary).
-  rushiGoalMode,
   # The target system.
   system,
   # The per-system ext table ({ extTools, extUi, extHooks }).
-  # The repo default (config/exts.nix, data) or a consumer
-  # ext set (lib.mkRushiFull `exts`).
+  # The consumer ext set: null is no exts, a list is the
+  # rushiExt contract fold, a raw attrset is the migration
+  # shape (lib.mkRushiFull `exts`).
   extsForSystem,
   # The configured kernel result (from configured.nix):
   # .package is the configured kernel, .config is the
@@ -46,11 +45,6 @@ let
   };
   # The mold-linker stdenv (the TUI package's stdenv field).
   moldStdenv = pkgs.stdenvAdapters.useMoldLinker pkgs.clangStdenv;
-  # The headless goal seeder (rushi-goal-mode issue #8): a
-  # bare binary, not a loop tool and not an ext. A user setup
-  # script calls it once to arm the session goal files before
-  # a headless `rushi run` starts.
-  rushiGoal = rushiGoalMode.packages.${system}."rushi-goal";
   # The self-contained TUI piece (its own file).
   tuiFull = import ./tui-full.nix {
     stdenv = pkgs.stdenv;
@@ -71,7 +65,6 @@ let
     nativeBuildInputs = [
       configured.package
       tuiFull
-      rushiGoal
     ];
     unpackPhase = "true";
     installPhase = ''
@@ -91,23 +84,11 @@ let
       # package's, so the overlay dedupes instead of
       # conflicting.
       cp -a ${tuiFull}/. $out/
-      # `cp -a` re-applies each source dir's mode to the
-      # existing dir, so bin/ is read-only again. Re-open it
-      # for the goal-seeder copy below.
-      chmod -R u+w $out
-      # Headless goal seeder next to the loop binaries:
-      # bin/rushi-goal. It resolves config by the kernel
-      # ladder, so the side-by-side step (<exe_dir>/../
-      # config.toml) lands on this package's root config.toml.
-      # A new path: no overlay conflict.
-      cp ${rushiGoal}/bin/rushi-goal $out/bin/rushi-goal
-      chmod +x $out/bin/rushi-goal
       test -x $out/bin/rushi || { echo "ERROR: rushi kernel binary missing"; exit 1; }
       test -x $out/bin/rushi-tui || { echo "ERROR: rushi-tui binary missing"; exit 1; }
-      test -x $out/bin/rushi-goal || { echo "ERROR: rushi-goal binary missing"; exit 1; }
     '';
     meta = {
-      description = "Combined rushi: configured kernel + self-wired TUI + headless goal seeder in one package";
+      description = "Combined rushi: configured kernel + self-wired TUI in one package";
       mainProgram = "rushi";
     };
   };

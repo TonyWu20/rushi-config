@@ -1091,3 +1091,44 @@ terminal-browser-agent 1 tool.
 repo's rushi lock to a commit carrying the helpers, then
 retire the inline fold in `build.nix` in favor of
 `rushiKernel.lib.unionRushiExt`.
+## The deployment layer holds no ext flake inputs (2026-10-28)
+
+**Decision.** rushi-config's `inputs` block keeps only
+nixpkgs, fenix, rushi-kernel, and rushi-tui. The nine ext
+flake inputs, the default ext table (config/exts.nix), the
+`enableTerminalBrowser` flag, and the `rushi-full-tb`
+prebaked attr are retired.
+
+**Why.** Ext sourcing is consumer data (the R8/R9 lines).
+A pure deployment layer does not pin the ext repos:
+pinning them here is the same lock-maintenance tax that
+the R9 reversal removed from the ext repos, one hop up.
+The prebaked packages ship zero exts.
+
+**What moved.**
+
+- `exts ? null` now means no exts. The list (the
+  rushiExt contract) and the raw table stay.
+- The goal seeder (`bin/rushi-goal`) left the prebaked
+  package. It ships from the goal-mode ext flake, which
+  this flake no longer references.
+- `config/hook-windows.nix` is kernel-shipped hooks only
+  (compact, no-long-sleep). Ext hook window placement is
+  consumer data: a consumer module sets
+  `rushi.config.hooks` for their own ext set. The
+  kernel's build-time drift guard makes the trim forced:
+  a def for an unbundled ext hook bin fails the build.
+- The terminal-browser tool is reached through the
+  consumer's `exts` list (the terminal-browser-agent
+  flake input), not a prebaked variant.
+
+**Gate.** The prebaked store paths re-baselined:
+default/rushi-full `353v58ij…`, rushi `hvsz2n78…`,
+rushi-tui `nqm20xqj…` (rushi-kernel unchanged, the raw
+kernel). The prebaked package layout verified: bin/ =
+kernel + TUI + kernel hooks (no rushi-goal), tools/ =
+native tools only, hooks/ empty, config.toml with an
+empty `extension_tool_paths` and no `[ui_extensions]`,
+the kernel-only hook pipeline. The consumer e2e
+(/tmp/e2e, `exts = [ goal-mode web-access ]`) rebuilds
+the ext tool set unchanged.

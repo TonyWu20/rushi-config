@@ -8,7 +8,7 @@
 #   1. How the config is written (configured.nix): the config
 #      value into lib.mkRushi.
 #   2. The full rushi package (rushi-full.nix): the configured
-#      kernel + the TUI + the goal seeder in one store object.
+#      kernel + the TUI in one store object.
 #
 # Everything else (the data files, the mechanism files) lives
 # in layers L0-L1 and does not appear here.
@@ -18,10 +18,6 @@
 # `lib.mkRushiFull` builder function.
 
 {
-  # The flake's full inputs attrset. It feeds the ext table
-  # only: config/exts.nix selects its ext flake inputs from
-  # it.
-  inputs,
   # The nixpkgs input (the shared system packages).
   nixpkgs,
   # The fenix input (the shared Rust toolchain overlay).
@@ -30,21 +26,11 @@
   rushiKernel,
   # The TUI flake input (the raw TUI package).
   rushiTui,
-  # The goal seeder flake input (the headless `rushi-goal` binary).
-  rushiGoalMode,
   # The target system.
   system,
-  # The consumer-side flags (the lib.mkRushiFull parameters).
-  # `enableTerminalBrowser` (default false) picks the config-side
-  # instantiation. The default build keeps the optional
-  # terminal-browser tool off. The enabled build adds the
-  # terminal-browser row to the default exts table. The flag
-  # gates the default table only; a consumer ext set (the
-  # `exts` parameter) decides the ext set.
-  enableTerminalBrowser ? false,
-  # The consumer ext set. Three forms:
-  #   null  — the repo default table (config/exts.nix, from
-  #     the flake's pinned ext inputs).
+  # The consumer ext set. Ext sourcing is consumer data: this
+  # flake holds no ext flake inputs. Three forms:
+  #   null — no exts (the prebaked packages).
   #   a list of ext flake inputs — the rushiExt contract.
   #     Each flake exposes rushiExt.<system> = { tools; ui;
   #     hooks; } (derived from its meta.rushi declarations,
@@ -64,15 +50,16 @@
   modules ? null,
 }:
 let
-  # The per-system ext table: the consumer ext set (list of
-  # ext flake inputs, or the raw table) or the repo default
-  # (config/exts.nix, data).
+  # The per-system ext table. null is no exts (the prebaked
+  # packages). A list folds the rushiExt contract; a raw
+  # attrset is the migration shape.
   extsForSystem =
   if exts == null then
-  import ./config/exts.nix {
-    inherit inputs;
-    tbEnabled = enableTerminalBrowser;
-  } system
+  {
+    extTools = [ ];
+    extUi = [ ];
+    extHooks = [ ];
+  }
   else if builtins.isList exts then
   # The rushiExt contract: a list of ext flake inputs. Each
   # flake exposes rushiExt.<system> = { tools; ui; hooks; }.
@@ -124,7 +111,7 @@ let
   # object. It also returns the TUI piece it bundles, so the
   # attrset below can alias it.
   full = import ./rushi-full.nix {
-    inherit nixpkgs fenix rushiKernel rushiTui rushiGoalMode
+    inherit nixpkgs fenix rushiKernel rushiTui
       system extsForSystem configured;
   };
 in

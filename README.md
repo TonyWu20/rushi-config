@@ -1,19 +1,20 @@
 # rushi-config
 
-Aggregator flake for a complete rushi deployment. It assembles the
-kernel (`rushi-flake`), the TUI front-end (`rushi-tui`), external
-tools, hooks, and UI extensions, plus a NixOS-style config module.
-It mirrors the `pi-config` pattern: one flake assembles everything
-and calls the kernel's `lib.mkRushi` to produce one runnable package.
+Deployment flake for a rushi build. It assembles the
+kernel (`rushi-flake`) and the TUI front-end (`rushi-tui`)
+with a NixOS-style config module, and calls the kernel's
+`lib.mkRushi` to produce one runnable package. It mirrors
+the `pi-config` pattern with one difference: this flake
+holds no ext flake inputs. External exts are consumer data
+(a consumer flake declares them and passes them to the
+builder's `exts` parameter, the `rushiExt` contract).
 
 ## Usage
 
     nix build .#rushi    # build the fully configured package
     nix run   .#rushi    # run the configured rushi
-    nix run   .#rushi-tui   # run the self-contained TUI (config + exts)
+    nix run   .#rushi-tui   # run the self-contained TUI
     nix run   .#tui         # alias of .#rushi-tui
-    nix build .#rushi-full-tb   # rushi-full with the optional
-                                 # terminal-browser tool enabled
     nix develop          # dev shell with the configured rushi on PATH
 
 Layout of the `.#rushi` output (`$out`):
@@ -23,9 +24,13 @@ Layout of the `.#rushi` output (`$out`):
                      it disappears when kernel rushi#31 lands. the
                      self-wired entry bin/rushi-tui ships in the
                      .#rushi-tui package)
-    tools/          tool manifests (kernel + external tools)
-    ui_extensions/  external UI extension dirs (ext.toml + binaries)
-    hooks/          external hook binaries
+    tools/          native tool manifests (kernel tools; a
+                    consumer build adds ext tool entries)
+    ui_extensions/  empty in the prebaked package (a consumer
+                    build bundles the ext UI extensions)
+    hooks/          empty in the prebaked package (a consumer
+                    build bundles the ext hook binaries; the
+                    kernel-shipped hooks live in bin/)
     config.toml     generated from the Nix module options
     tools.manifest  rushi.toml equivalent for `rushi setup --locked`
 
@@ -36,7 +41,8 @@ Layout of the `.#rushi-tui` output (self-contained TUI package):
                     loop via the [loop] section or the `rushi` CLI
                     from PATH.
     config.toml     generated from the Nix module options
-    ui_extensions/  the bundled UI extensions
+    ui_extensions/  the bundled UI extensions (empty in the
+                    prebaked package)
 
 ## Inputs and the bootstrap -> hosting transition
 
@@ -115,27 +121,30 @@ tools. The `rushi-config.nix` `toolNames` parameter accepts a
 per-build subset for future variants. The ext tools, hooks, and
 UI extensions are unchanged by the native tool set.
 
-## Optional terminal-browser tool
+## The terminal-browser tool (consumer side)
 
-`rushi-full` can bundle the terminal-browser tool from the
-`terminal-browser-agent` repo. The tool is opt-in: the default
-builds (`.#rushi-full`, `.#rushi`, `.#rushi-tui`, the devShell)
-ship without it.
+The terminal-browser tool ships in the
+`terminal-browser-agent` ext flake. The prebaked packages of
+this flake carry no exts, so the tool is added on the
+consumer side: declare the ext flake as an input and pass it
+to the builder's `exts` list.
 
-Enable it on the consumer side:
+```nix
+inputs = {
+  rushi-config.url = "github:TonyWu20/rushi-config";
+  terminal-browser-agent.url = "github:TonyWu20/terminal-browser-agent";
+};
+outputs = { system, rushi-config, terminal-browser-agent, ... }: {
+  packages.${system}.rushi = rushi-config.lib.mkRushiFull {
+    inherit system;
+    exts = [ terminal-browser-agent ];
+  };
+};
+```
 
-- Prebaked attr, one-shot from this repo:
-  `nix build .#rushi-full-tb`
-- Builder function, from a consuming flake or NixOS module:
-  `inputs."rushi-config".lib.mkRushiFull
-    { system = system; enableTerminalBrowser = true; }`
-
-The enabled build appends the tool row to the exts table
-(`extTools` in `config/exts.nix`), so the configured package and
-the TUI package both carry it: `tools/terminal-browser/` is
-bundled in the package, and the generated config's
-`extension_tool_paths` names the tool's store path. The disabled
-build is byte-identical to the pre-option package.
+The builder folds the flake's `rushiExt` buckets: the tool
+lands in the package `tools/` dir and the generated config's
+`extension_tool_paths`.
 
 ## Config (consumer side)
 
@@ -166,12 +175,14 @@ options (the kernel option schema):
 ```
 
 `modules = [ ]` (the default) is the kernel's neutral
-defaults plus the default ext catalog. The repo's own config
-(model table, prompt, hook windows, limits tuning) ships in
-the prebaked `packages` attrs only. A consumer who wants to
-start from it copies the data files
+defaults and no exts. The repo's own deployment config
+(model table, prompt, the kernel hook windows, limits
+tuning) ships in the prebaked `packages` attrs only. A
+consumer who wants to start from it copies the data files
 (config/rushi-config.nix, config/hook-windows.nix) into
-their own repo.
+their own repo. Ext hook window placement is consumer data:
+a consumer module sets rushi.config.hooks for their own ext
+set.
 
 The `[system_prompt].text` value is one of the config
 sections. A consumer sets it in their module (a string, or a
@@ -180,9 +191,9 @@ carry the built-in `system-prompt.txt` at the repo root.
 
 ## Ext selection
 
-The ext set is data. The default set is the declare-once
-table in `config/exts.nix`, built from this flake's pinned
-ext inputs. A consumer picks their own ext set through the
+The ext set is data, and it is consumer-owned. This flake
+holds no ext flake inputs: the prebaked packages ship zero
+exts. A consumer picks their own ext set through the
 builder's `exts` parameter. Three forms:
 
 - **A list of ext flake inputs** (the `rushiExt` contract,
@@ -205,10 +216,7 @@ builder's `exts` parameter. Three forms:
   `{ extTools, extUi, extHooks }` of ext packages for the
   target system.
 
-- **null** (the default): the repo default table.
-
-The `enableTerminalBrowser` flag gates the default table
-only. A consumer ext set decides the ext set.
+- **null** (the default): no exts.
 
 The consumer flake shape, end to end:
 

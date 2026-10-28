@@ -1,7 +1,8 @@
 # rushi-config — the aggregator (the rushi analog of pi-config).
 #
-# One flake that packages the kernel + TUI front-end + config + external
-# tools/hooks/UI-extensions as a single usable `rushi` package. The user
+# One flake that packages the kernel + TUI front-end + config as a
+# single usable `rushi` deployment. External exts are consumer data:
+# the consumer declares them and the builder places them. The user
 # runs it like pi-config:
 #
 #   nix build .#            # build the combined kernel + TUI package
@@ -9,10 +10,12 @@
 #   nix run   .#rushi       # run rushi from the configured kernel
 #
 # The kernel flake (rushi-kernel) provides `lib.mkRushi`; this flake feeds
-# it NixOS-style modules that declare the model, limits, tools, and the
-# external ext/hook/UI-ext packages. Each ext repo ships its own flake
-# (Mode B, ext-flake-authoring.md), so this flake just references their
-# `packages` outputs and hands them to `lib.mkRushi`.
+# it NixOS-style modules that declare the model, limits, and tools. This
+# flake is the deployment layer: it holds no ext flake inputs. Ext
+# sourcing is consumer data — a consumer flake declares the ext flake
+# inputs in its own `inputs` and passes them to the builder's `exts`
+# parameter (the rushiExt contract, kernel docs ext-flake-authoring.md
+# section 4.6). The prebaked packages ship zero exts.
 #
 # Dependency shape (a clean DAG, no cycle):
 #
@@ -37,8 +40,7 @@
 #   L1  tool-paths.nix          the absolute store tool paths.
 #       tui-compat.nix         the bin/tui transition bridge.
 #       tui-full.nix           the self-contained TUI package.
-#   L0  config/exts.nix         the ext table (data).
-#       config/hook-windows.nix the [hooks] pipeline (data).
+#   L0  config/hook-windows.nix the [hooks] pipeline (data).
 #       config/native-tools.nix the native tool catalog (data).
 #       config/rushi-config.nix the repo's data module (rushi.* values).
 #
@@ -46,7 +48,7 @@
 #
 
 {
-  description = "rushi-config — packages rushi (kernel + TUI + config + exts) as one Nix deployment";
+  description = "rushi-config — packages rushi (kernel + TUI + config) as one Nix deployment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -59,7 +61,7 @@
     # `fenix`, so the whole build graph shares one nixpkgs revision and
     # one Rust toolchain. Without this each sub-flake pulls its own
     # nixpkgs + fenix, which duplicates toolchains and risks version
-    # drift between the kernel, the TUI, and the ext packages.
+    # drift between the kernel and the TUI.
 
     # ── Kernel (provides lib.mkRushi). Pinned github ref; the lock pins
     # the exact commit. Since rushi#13 lib.mkRushi reads each producer's
@@ -87,67 +89,6 @@
       inputs.fenix.follows = "fenix";
     };
 
-    # ── Extension / hook repos (each is its own git repo + flake).
-    # rushi-image-read ships the `img` image-read ext tool; local
-    # pin until hosting (see its input below). ──
-    # At hosting time, flip each to a pinned github ref.
-    rushi-goal-mode = {
-      url = "github:TonyWu20/rushi-goal-mode";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.fenix.follows = "fenix";
-    };
-    no-find-grep = {
-      url = "github:TonyWu20/no-find-grep-rushi";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.fenix.follows = "fenix";
-    };
-    rushi-simple-english = {
-      url = "github:TonyWu20/rushi-simple-english";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.fenix.follows = "fenix";
-    };
-    # Local pin until the host-cwd protocol (tick cwd field + RUSHI_CWD)
-    # is released and stabilized upstream. Flip back to
-    # github:TonyWu20/rushi-statusline at hosting time.
-    rushi-statusline = {
-      url = "github:TonyWu20/rushi-statusline";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.fenix.follows = "fenix";
-    };
-    rushi-obscura-web-access = {
-      url = "github:TonyWu20/rushi-obscura-web-access";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.fenix.follows = "fenix";
-    };
-    # Hosted ext repo. The lock pins the exact rev.
-    # Bump: `nix flake update rushi-mineru-pdf`.
-    rushi-mineru-pdf = {
-      url = "github:TonyWu20/rushi-mineru-pdf";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.fenix.follows = "fenix";
-    };
-    # Hosted ext repo. The lock pins the exact rev.
-    # Bump: `nix flake update rushi-image-read`.
-    rushi-image-read = {
-      url = "github:TonyWu20/rushi-image-read";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.fenix.follows = "fenix";
-    };
-    # ── mermaid TUI transform ext (UI-ext repo, Mode B). ──
-    rushi-tui-mermaid-ext = {
-      url = "github:TonyWu20/rushi-tui-mermaid-ext";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.fenix.follows = "fenix";
-    };
-
-    # ── terminal-browser tool ext (tool-only repo, Mode B). ──
-    # Hosted ext repo. The lock pins the exact rev.
-    # Bump: `nix flake update terminal-browser-agent`. The tool
-    # is optional in the build: see cfgTb below.
-    terminal-browser-agent = {
-      url = "github:TonyWu20/terminal-browser-agent";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -155,20 +96,12 @@
       self,
       nixpkgs,
       fenix,
-      # The hyphenated ext input names destructure as bare
-      # identifiers. The body uses them without the `inputs.`
-      # prefix (for example `rushi-kernel.lib.mkRushi`).
+      # The hyphenated input names (rushi-kernel, rushi-tui)
+      # destructure as bare identifiers. The body uses them
+      # without the `inputs.` prefix (for example
+      # `rushi-kernel.lib.mkRushi`).
       rushi-kernel,
       rushi-tui,
-      rushi-goal-mode,
-      no-find-grep,
-      rushi-simple-english,
-      rushi-statusline,
-      rushi-obscura-web-access,
-      rushi-mineru-pdf,
-      rushi-image-read,
-      rushi-tui-mermaid-ext,
-      terminal-browser-agent,
       ...
     }:
     let
@@ -181,37 +114,34 @@
       pkgLib = nixpkgs.lib;
 
       # The per-system build. buildForSystem hands the flake's
-      # named flake inputs, the target system, and the two
-      # consumer flags to build.nix. That file shows the two
+      # named flake inputs, the target system, and the
+      # consumer values to build.nix. That file shows the two
       # build products: how the config is written
       # (configured.nix) and the full package
       # (rushi-full.nix). flake.nix keeps a concise view of the
       # flake inputs and the outputs wiring.
       #
-      # The consumer-side flag `enableTerminalBrowser` (default
-      # false) picks the config-side instantiation. The default
-      # build keeps the optional terminal-browser tool off. The
-      # enabled build adds the terminal-browser row to the exts
-      # table. The consumer-side value `modules` (default
+      # The consumer-side value `modules` (default
       # null) is the declarative config this build assembles:
       # null is the repo's own deployment, a list is the
       # consumer's modules (merged on top of the kernel's
       # neutral defaults). The consumer-side value `exts`
-      # (default null) replaces the repo default exts table
-      # with a consumer ext set. Three forms: a list of ext
-      # flake inputs (the rushiExt contract: each flake
-      # exposes rushiExt.<system> = { tools; ui; hooks; },
-      # derived from its meta.rushi declarations), or the
+      # (default null, no exts) is the consumer ext set.
+      # Three forms: a list of ext flake inputs (the
+      # rushiExt contract: each flake exposes
+      # rushiExt.<system> = { tools; ui; hooks; }, derived
+      # from its meta.rushi declarations), or the
       # raw { extTools, extUi, extHooks } package table.
+      # Ext sourcing is consumer data: this flake holds no
+      # ext flake inputs.
       buildForSystem =
         {
           system,
-          enableTerminalBrowser ? false,
           exts ? null,
           modules ? null,
         }:
         import ./build.nix {
-          inherit inputs system enableTerminalBrowser exts modules;
+          inherit system exts modules;
           # The flake inputs the build section names, stated
           # explicitly at the boundary instead of looked up
           # inside the inputs bag.
@@ -219,44 +149,30 @@
           fenix = inputs.fenix;
           rushiKernel = inputs."rushi-kernel";
           rushiTui = inputs."rushi-tui";
-          rushiGoalMode = inputs."rushi-goal-mode";
         };
     in
     {
-      # The per-system default build (the optional terminal-browser
-      # tool is off, the long-standing attr set) plus a prebaked
-      # enabled-variant attr.
+      # The prebaked packages. The default build ships zero
+      # exts: ext sourcing is consumer data (the builder's
+      # `exts` parameter, the consumer's own flake inputs).
       packages = pkgLib.genAttrs supportedSystems (
         system:
-        let
-          base = buildForSystem { inherit system; };
-          withTb = buildForSystem {
-            inherit system;
-            enableTerminalBrowser = true;
-          };
-        in
-        base // {
-          # Prebaked convenience for the enabled variant. A consuming
-          # flake gets the same package through lib.mkRushiFull with
-          # the flag set.
-          "rushi-full-tb" = withTb."rushi-full";
-        }
+        buildForSystem { inherit system; }
       );
 
-      # The consumer-side control point for the optional tool,
-      # the config, and the ext set. The caller passes its
-      # values; the result is the combined rushi-full package.
+      # The consumer-side control point for the config and
+      # the ext set. The caller passes its values; the
+      # result is the combined rushi-full package.
       # `modules` (default [ ]) is the consumer's declarative
       # rushi config: NixOS-style modules that set the
       # rushi.* options (the nixvim-config/default.nix shape),
       # merged on top of the kernel's neutral defaults. [ ] is
-      # the kernel defaults only. `exts` (default null)
-      # replaces the repo default exts table with a consumer
-      # ext set: a list of ext flake inputs (the rushiExt
-      # contract) or the raw { extTools, extUi, extHooks }
-      # package table. `enableTerminalBrowser` (default
-      # false) adds the terminal-browser row to the default
-      # exts table.
+      # the kernel defaults only. `exts` (default null, no
+      # exts) is the consumer ext set: a list of ext flake
+      # inputs (the rushiExt contract) or the raw
+      # { extTools, extUi, extHooks } package table. The
+      # consumer declares the ext flake inputs in its own
+      # `inputs`; this flake holds none.
       #
       # From a consuming flake:
       #   inputs."rushi-config".lib.mkRushiFull
@@ -275,7 +191,6 @@
       #     rushi.config.limits = { bash_timeout_max = 300; };
       #     rushi.config.system_prompt.text = "…";
       #   }
-      # One-shot from this repo: `nix build .#rushi-full-tb`.
       # Note: the `r` binding below is required. A tight
       # `buildForSystem { … }."rushi-full"` parses as a select on
       # the argument attrset, not on the call result (a Nix parse
@@ -289,29 +204,26 @@
         # the kernel's neutral defaults. [ ] is the kernel
         # defaults only. No rushi-config repo config is involved
         # in the consumer path.
-        # `exts` (default null) replaces the repo default exts
-        # table (config/exts.nix, from the flake's pinned ext
-        # inputs) with a consumer ext set. Three forms: a
-        # list of ext flake inputs (the rushiExt contract:
-        # each flake exposes rushiExt.<system> = { tools; ui;
-        # hooks; }, derived from its meta.rushi declarations;
-        # kernel docs ext-flake-authoring.md section 4.6), or
-        # the raw { extTools, extUi, extHooks } package table
+        # `exts` (default null, no exts) is the consumer ext
+        # set. Three forms: a list of ext flake inputs (the
+        # rushiExt contract: each flake exposes
+        # rushiExt.<system> = { tools; ui; hooks; }, derived
+        # from its meta.rushi declarations; kernel docs
+        # ext-flake-authoring.md section 4.6), or the raw
+        # { extTools, extUi, extHooks } package table
         # (migration shape). The consumer declares the exts in
         # their own flake inputs, so the ext set is
-        # consumer-owned.
-        # `enableTerminalBrowser` (default false) adds the
-        # terminal-browser row to the default exts table.
+        # consumer-owned. This flake holds no ext flake
+        # inputs.
         mkRushiFull =
           {
             system,
-            enableTerminalBrowser ? false,
             exts ? null,
             modules ? [ ],
           }:
           let
             r = buildForSystem {
-              inherit system enableTerminalBrowser exts modules;
+              inherit system exts modules;
             };
           in
           r."rushi-full";
@@ -350,9 +262,7 @@
               echo "  rushi         configured kernel (bin/ + tools/ + hooks/"
               echo "                   config.toml + ui_extensions/ in the package)"
               echo "  rushi-tui     self-wired TUI entry, same store object"
-              echo "  rushi-goal    headless goal seeder, same store object"
               echo "Run:  rushi run <session>   |   rushi-tui"
-              echo "Headless: rushi-goal <session> <goal> && rushi run <session>"
             '';
           };
         }

@@ -10,8 +10,8 @@
 #                        (tool-paths.nix).
 #
 # The ext table for this system (extsForSystem) is a
-# parameter: the repo default (config/exts.nix, data) or a
-# consumer ext set.
+# parameter: the consumer ext set (null, a flake-input
+# list, or the raw table).
 #
 # The config modules (the modules parameter) are the
 # declarative data this build assembles: null is the repo's
@@ -39,8 +39,9 @@
   # The target system.
   system,
   # The per-system ext table ({ extTools, extUi, extHooks }).
-  # The repo default (config/exts.nix, data) or a consumer
-  # ext set (lib.mkRushiFull `exts`).
+  # The consumer ext set: null is no exts (the prebaked
+  # packages), a list is the rushiExt contract fold, a raw
+  # attrset is the migration shape (lib.mkRushiFull `exts`).
   extsForSystem,
   # The declarative config modules for this build. null is the
   # repo's own deployment (the config/rushi-config.nix data
