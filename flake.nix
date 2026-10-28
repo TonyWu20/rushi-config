@@ -198,8 +198,11 @@
       # consumer's modules (merged on top of the kernel's
       # neutral defaults). The consumer-side value `exts`
       # (default null) replaces the repo default exts table
-      # with a consumer ext set ({ extTools, extUi, extHooks }
-      # of ext packages).
+      # with a consumer ext set. Three forms: a list of ext
+      # flake inputs (the rushiExt contract: each flake
+      # exposes rushiExt.<system> = { tools; ui; hooks; },
+      # derived from its meta.rushi declarations), or the
+      # raw { extTools, extUi, extHooks } package table.
       buildForSystem =
         {
           system,
@@ -249,14 +252,18 @@
       # merged on top of the kernel's neutral defaults. [ ] is
       # the kernel defaults only. `exts` (default null)
       # replaces the repo default exts table with a consumer
-      # ext set. `enableTerminalBrowser` (default false) adds
-      # the terminal-browser row to the default exts table.
+      # ext set: a list of ext flake inputs (the rushiExt
+      # contract) or the raw { extTools, extUi, extHooks }
+      # package table. `enableTerminalBrowser` (default
+      # false) adds the terminal-browser row to the default
+      # exts table.
       #
       # From a consuming flake:
       #   inputs."rushi-config".lib.mkRushiFull
       #     {
       #       system = system;
       #       modules = [ ./my-rushi-config.nix ];
+      #       exts = [ myGoalFlake myWebFlake ];
       #       # exts = { extTools = [ … ]; extUi = [ … ]; extHooks = [ … ]; };
       #     }
       #
@@ -284,10 +291,15 @@
         # in the consumer path.
         # `exts` (default null) replaces the repo default exts
         # table (config/exts.nix, from the flake's pinned ext
-        # inputs) with a consumer ext set: an attrset
-        # { extTools, extUi, extHooks } of ext packages. The
-        # consumer pins its own ext flake inputs and passes the
-        # packages, so the ext set is consumer-owned.
+        # inputs) with a consumer ext set. Three forms: a
+        # list of ext flake inputs (the rushiExt contract:
+        # each flake exposes rushiExt.<system> = { tools; ui;
+        # hooks; }, derived from its meta.rushi declarations;
+        # kernel docs ext-flake-authoring.md section 4.6), or
+        # the raw { extTools, extUi, extHooks } package table
+        # (migration shape). The consumer declares the exts in
+        # their own flake inputs, so the ext set is
+        # consumer-owned.
         # `enableTerminalBrowser` (default false) adds the
         # terminal-browser row to the default exts table.
         mkRushiFull =

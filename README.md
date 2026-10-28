@@ -183,26 +183,53 @@ carry the built-in `system-prompt.txt` at the repo root.
 The ext set is data. The default set is the declare-once
 table in `config/exts.nix`, built from this flake's pinned
 ext inputs. A consumer picks their own ext set through the
-builder:
+builder's `exts` parameter. Three forms:
 
-- Builder function, from a consuming flake (the ext packages
-  come from the consumer's own pinned ext flake inputs):
+- **A list of ext flake inputs** (the `rushiExt` contract,
+  the nixvim-plugins equivalent). Each ext flake exposes
+  `rushiExt.<system> = { tools; ui; hooks; }`, derived from
+  its `meta.rushi` declarations (kernel
+  `docs/reference/nix/ext-flake-authoring.md` section 4.6,
+  `lib.rushiExtBuckets`). The consumer declares the exts in
+  their own flake inputs and passes the flake inputs
+  straight. No `packages.<system>.<name>` selection, no
+  bucket routing:
+
   `inputs."rushi-config".lib.mkRushiFull
     { system = system;
-      exts = {
-        extTools = [ myExtInputs."rushi-obscura-web-access".packages."x86_64-linux"."web-fetch" … ];
-        extUi = [ myExtInputs."rushi-statusline".packages."x86_64-linux".statusline … ];
-        extHooks = [ … ];
-      }; }`
+      exts = [ myGoalFlake myWebFlake myStatuslineFlake ]; }`
 
-`exts` (default null) is an attrset `{ extTools, extUi,
-extHooks }` of ext packages for the target system. It
-replaces the default table. null keeps the default table.
-The consumer pins its own ext flake inputs and passes the
-packages, so the ext set is consumer-owned.
+- **A raw table** (migration shape): an attrset
+  `{ extTools, extUi, extHooks }` of ext packages for the
+  target system.
+
+- **null** (the default): the repo default table.
 
 The `enableTerminalBrowser` flag gates the default table
 only. A consumer ext set decides the ext set.
+
+The consumer flake shape, end to end:
+
+```nix
+inputs = {
+  rushi-config.url = "github:TonyWu20/rushi-config";
+  # the exts, as the consumer's own flake inputs:
+  rushi-goal-mode.url = "github:TonyWu20/rushi-goal-mode";
+  rushi-obscura-web-access.url = "github:TonyWu20/rushi-obscura-web-access";
+  # … each ext follows the consumer's nixpkgs/fenix (or pins
+  # its own); the ext flake's rushiExt is derived, not declared
+};
+outputs = { system, rushi-config, rushi-goal-mode, rushi-obscura-web-access, ... }: {
+  packages.${system}.rushi = rushi-config.lib.mkRushiFull {
+    inherit system;
+    exts = [ rushi-goal-mode rushi-obscura-web-access ];
+    modules = [ ({ pkgs, lib, ... }: {
+      rushi.config.active.model = "…";
+      rushi.config.system_prompt.text = "…";
+    }) ];
+  };
+};
+```
 
 ## Troubleshooting: external hooks not firing
 
