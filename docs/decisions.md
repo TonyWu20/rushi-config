@@ -1132,3 +1132,15 @@ empty `extension_tool_paths` and no `[ui_extensions]`,
 the kernel-only hook pipeline. The consumer e2e
 (/tmp/e2e, `exts = [ goal-mode web-access ]`) rebuilds
 the ext tool set unchanged.
+
+**Consumer migrated.** The consumer flake
+(`~/programming`, commit b88aa9d) is now the reference
+consumer: it declares the 8 ext flake inputs itself,
+selects packages with the raw `exts` table (the `goal`
+loop tool stays out per the 2026-10-12 decision),
+carries the personal config in `rushi/rushi-config.nix`,
+and merges the goal seeder into `bin/`. Its package
+layout is byte-identical to the pre-R10 prebaked
+`rushi-full` (bin, tools, ui_extensions, hooks, the
+config sections; `[paths]` is the kernel relative
+default, not the prebaked absolute store paths).
