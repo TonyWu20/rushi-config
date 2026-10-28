@@ -3,7 +3,9 @@
 # The package the flake delivers as `rushi-tui` (the `tui` key
 # is kept as a pre-issue-#22 alias). The raw TUI binary + the
 # generated TUI config.toml (absolute tool paths) + the
-# bundled ui_extensions/, all laid out side by side. Since
+# bundled ui_extensions/ (the configured kernel piece's
+# assembled ext dir, the single source for the TUI ext layer),
+# all laid out side by side. Since
 # rushi-tui dd69b84 (issue #11) the bare binary resolves its
 # config next to itself (<exe_dir>/../config.toml; the shared
 # resolver added in issue #22 / kernel PR #30 checks $CONFIG
@@ -30,9 +32,14 @@
   # Its absolute store tool manifests are referenced by the
   # generated config's native entries.
   rawKernel,
-  # The external UI ext sources (the per-system exts table's
-  # extUi list: store derivations or strings).
-  extUiSources,
+  # The configured kernel package (lib.mkRushi's .package).
+  # Its ui_extensions/ dir is the assembled single source for
+  # the TUI extension layer: the module-merged
+  # external_ui_extensions (the consumer's TUI ext set) plus
+  # any kernel-bundled ui extension names. The TUI piece
+  # bundles that dir verbatim, so it can never drift from the
+  # kernel piece it overlays onto.
+  uiExtDir,
   # The external tool packages (the exts table's extTools
   # list). The generated config's external entries reference
   # them.
@@ -45,37 +52,17 @@
   writeText,
 }:
 let
-  # Copy each bundled ext source into $out/ui_extensions/ (the
-  # same layout logic as lib.mkRushi's extUiScript). Since
-  # rushi#10 entry-dir names are auto-discovered (each ext.toml
-  # dir), so each source must ship one, else the build fails
-  # with a clear error instead of silently dropping the ext.
-  copyExtUiScript = builtins.concatStringsSep "\n" (
-    map (
-      source:
-      let
-        # The source as a string: a plain path string, or the
-        # derivation's store path.
-        sourceString = if builtins.isString source then source else toString source;
-      in
-      ''
-        # External UI ext source: ${sourceString}
-        if [ ! -d "${sourceString}" ]; then
-          echo "rushi-tui: UI ext source ${sourceString} is missing or not a directory" >&2
-          exit 1
-        fi
-        ext_toml=""
-        for entry in "${sourceString}"/ext.toml "${sourceString}"/*/ext.toml; do
-          if [ -f "$entry" ]; then ext_toml="$entry"; break; fi
-        done
-        if [ -z "$ext_toml" ]; then
-          echo "rushi-tui: UI ext source ${sourceString} ships no ext.toml (broken ext)" >&2
-          exit 1
-        fi
-        cp -rL "${sourceString}/." "$out/ui_extensions/"
-      ''
-    ) extUiSources
-  );
+  # Copy the configured kernel piece's assembled ui_extensions/
+  # dir (the single source: the module-merged
+  # external_ui_extensions, already validated there — each
+  # entry ships an ext.toml or the kernel piece's build failed
+  # with a clear error). An empty dir (the no-exts deployment)
+  # is a no-op.
+  uiExtCopy = ''
+    if [ -d "${uiExtDir}/ui_extensions" ] && [ -n "$(ls -A "${uiExtDir}/ui_extensions" 2>/dev/null)" ]; then
+      cp -rL "${uiExtDir}/ui_extensions/." "$out/ui_extensions/"
+    fi
+  '';
   # The TUI config file (a writeText store derivation, added to
   # the package closure automatically as a build dep).
   tuiConfigFile = writeText "rushi-tui-config.toml" tuiConfigText;
@@ -87,7 +74,7 @@ stdenv.mkDerivation {
   # The TUI config's absolute tool paths point into these
   # store dirs, so they must stay in the package closure or
   # a GC would leave the config dangling.
-  nativeBuildInputs = [ rawTui ] ++ extUiSources ++ [ rawKernel ] ++ extToolPackages;
+  nativeBuildInputs = [ rawTui rawKernel uiExtDir ] ++ extToolPackages;
   unpackPhase = "true";
   installPhase = ''
     mkdir -p $out/bin $out/ui_extensions
@@ -99,7 +86,7 @@ stdenv.mkDerivation {
     # env var outranks it (kernel precedence).
     cp ${rawTui}/bin/rushi-tui $out/bin/rushi-tui
     chmod +x $out/bin/rushi-tui
-    ${copyExtUiScript}
+    ${uiExtCopy}
     # ${tuiConfigFile} interpolates the writeText store path
     # (added to the closure automatically as a build dep).
     cp ${tuiConfigFile} $out/config.toml

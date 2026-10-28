@@ -7,9 +7,9 @@
 # resolved from PATH.
 # The two inputs' root config.toml files are byte-identical
 # (one evaluation, the same absolute store tool paths) and
-# their ui_extensions/ dirs bundle the same ext packages, so
-# overlaying the TUI onto the kernel package merges without
-# conflict.
+# the TUI piece bundles the kernel piece's own assembled
+# ui_extensions/ dir (the single source), so overlaying the
+# TUI onto the kernel package merges without conflict.
 #
 # This file also owns the pieces it merges: the self-
 # contained TUI package (tui-full.nix) and the raw goal
@@ -51,7 +51,11 @@ let
     inherit moldStdenv;
     rawTui = rushiTui.packages.${system}.default;
     rawKernel = rushiKernel.packages.${system}.rushi;
-    extUiSources = extsForSystem.extUi;
+    # The TUI piece bundles the kernel piece's assembled
+    # ui_extensions/ dir itself (the single source: the
+    # module-merged external_ui_extensions), so it can never
+    # drift from the piece it overlays onto.
+    uiExtDir = configured.package;
     extToolPackages = extsForSystem.extTools;
     tuiConfigText = configured.config;
     writeText = pkgs.writeText;

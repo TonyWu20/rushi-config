@@ -1156,3 +1156,39 @@ self-contained revs. The `~/programming` flake still
 carries an in-tree copy of the same consumer build for
 its devShell; it can switch to consuming
 `my-rushi-config` and drop the copy.
+
+**Option B: the config module declares the TUI
+extension set.** The TUI exts are no longer table data:
+`my-rushi-config/rushi/default.nix` now takes the ext
+flake parameters and declares
+`rushi.external_ui_extensions` (goal-ext,
+simple-english-ext, statusline, mermaid-ext) — the
+single declarative place for the TUI exts (the
+my-nix-nvim shape: the extension list lives in the
+config). The table keeps `extUi = [ ]` (the raw-table
+contract's key stays); the kernel's module eval is
+last-module-wins for simple list options, so the
+module's set overrides the builder `extsModule`'s. The
+`~/programming` flake's in-tree copy predates this and
+still carries the table-side list; drop it when that
+flake switches to consuming `my-rushi-config`.
+
+**Single source for the TUI piece.** `tui-full.nix` now
+bundles the configured kernel piece's assembled
+`ui_extensions/` dir (`uiExtDir = configured.package`)
+instead of the table's `extUi` list: one assembled dir
+feeds both pieces, so the TUI piece can never drift
+from the kernel piece it overlays onto, and the
+standalone `rushi-tui` output keeps its ext layer even
+when the table carries none. Per-entry validation
+(each ext ships an ext.toml) stays in the kernel piece's
+own build.
+
+Push-dependent. These rushi-config commits are local
+(unpushed): `my-rushi-config`'s lock pins rushi-config
+at 4582ef8, so the consumer picks up the TUI-piece
+single source on `nix flake update rushi-config` after
+the push. Option B works against the pinned rev today:
+the module's set flows into the kernel piece, and the
+pinned `tui-full` (empty `extUi`) leaves the overlay to
+keep the kernel piece's dir.
