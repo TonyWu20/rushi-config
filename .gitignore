@@ -4,3 +4,5 @@ result
 sessions/
 result-*
 out/
+.envrc
+.direnv
