@@ -1144,3 +1144,15 @@ layout is byte-identical to the pre-R10 prebaked
 `rushi-full` (bin, tools, ui_extensions, hooks, the
 config sections; `[paths]` is the kernel relative
 default, not the prebaked absolute store paths).
+
+**Dedicated consumer repo.** The consumer side moved
+into its own repo, `my-rushi-config` (the my-nix-nvim
+vs nixvim shape): `rushi/default.nix` is the module,
+`rushi/exts.nix` is the raw exts table, the flake holds
+the ext inputs and the builder call. All rushi inputs
+are github refs (the repos went public); the lock pins
+rushi-config at 4582ef8 and the 8 exts at their R9
+self-contained revs. The `~/programming` flake still
+carries an in-tree copy of the same consumer build for
+its devShell; it can switch to consuming
+`my-rushi-config` and drop the copy.
