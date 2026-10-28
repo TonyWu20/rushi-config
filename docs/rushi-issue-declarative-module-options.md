@@ -71,13 +71,16 @@ Shape (the NixOS module; the home-manager module mirrors it):
 
 ## Implementation notes
 
-- `lib.mkRushi` takes a required `src` argument (the kernel
-  source path, used for `tools/*/tool.toml` discovery and the
-  cargo lock). The flake today exposes the bare module
-  function (`nixosModules.rushi = import ./lib/nixos-module.nix`).
-  The flake should wrap the exposed module so the kernel source
-  is available to the in-module `mkRushi` call. The flake's
-  own source path is a value the flake can close over.
+- The flake's exposed `lib.mkRushi` already closes over the
+  kernel source (`lib/default.nix` passes `src = ../.` and
+  `kernelCargoLock = { lockFile = ../Cargo.lock; }`). The
+  consumer passes only `{ pkgs; modules; }`, the
+  `evalNixvim`-equivalent surface. The flake today exposes
+  the bare module function
+  (`nixosModules.rushi = import ./lib/nixos-module.nix`).
+  The flake should wrap the exposed module so the in-module
+  call can reach `flake.lib.mkRushi` and the consumer's
+  `pkgs`. `rustToolchain` stays null (auto-resolved).
 - `rushi.environment` keeps its three value forms (literal,
   `value`, `file`). sops-nix secrets keep working through the
   module path.
