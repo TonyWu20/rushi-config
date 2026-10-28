@@ -1,92 +1,45 @@
-# config/rushi-config.nix — the rushi config content, as data.
+# config/rushi-config.nix — the repo's declarative rushi
+# config, as data.
 #
-# This file is the generated `rushi` config value, top to bottom:
-# the version, the [tools] enabled list, the bundled ext
-# packages, the TUI binary, and the config.toml sections
+# The repo owner's deployment: the `rushi.*` option values the
+# prebaked packages.* attrs build. This file is data, not a
+# value: a NixOS-style module function (the
+# nixvim-config/default.nix shape), read top-down. It sets the
+# version, the native tool list, and the config.toml sections
 # ([active], [model], [limits], [paths], [hooks], [loop],
 # [system_prompt], [tui]). The sections mirror config-real.toml
 # from the kernel checkout.
 #
-# It is data, not a NixOS module: one function of named
-# arguments, and its body reads top-down. configured.nix (the
-# assembly layer) wraps this value in the module function the
-# kernel's lib.mkRushi expects.
+# The builder-owned fields are not here: the ext packages
+# (rushi.external_*) come from the exts table (config/exts.nix,
+# via the builder's exts module), and the TUI binary
+# (rushi.tui) is wired by the builder's tui module.
+#
+# A consumer does not take this file. The consumer builder
+# (lib.mkRushiFull) merges the consumer's own modules on top of
+# the kernel's neutral defaults. A consumer who wants this
+# exact setup copies the data into their own repo.
 
 {
-  # The per-system ext table (from config/exts.nix): extTools,
-  # extUi, extHooks.
-  extsForSystem,
   # The native tool catalog (config/native-tools.nix).
   nativeToolNames,
-  # The TUI binary package, bundled into the package bin/ dir.
-  tuiPkg,
-  # The [paths] tool entries: null keeps the relative tools/...
-  # entries (valid for a package that bundles tools/ next to
-  # its config). A { native, ext } attrset of absolute store
-  # paths is used by the TUI variant (its package ships no
-  # tools/ dir).
-  toolPaths ? null,
-  # The native tool names to expose. null is the full catalog.
-  # A subset (e.g. [ "bash" ]) ships a variant with fewer
-  # native tools.
-  toolNames ? null,
-  # The [system_prompt] text. null is the built-in
-  # system-prompt.txt. A string is the inline text. A path (or a
-  # text-file derivation) is read as a file.
-  systemPrompt ? null,
+  # The [paths] tool entries: a { native, ext } attrset of
+  # absolute store paths. The TUI package ships no tools/ dir,
+  # so the entries point into the store.
+  toolPaths,
 }:
-let
+{
+  # The kernel version the build targets (recorded in the
+  # generated tools.manifest).
+  rushi.version = "0.1";
+
   # The [tools] enabled list of the generated tools.manifest:
   # one entry per native tool this build exposes.
-  tools = if toolNames == null then nativeToolNames else toolNames;
-  # A text-file source: a Nix path value, or a derivation
-  # attrset that carries an outPath (for example the result
-  # of `pkgs.writeText`).
-  isFileSource =
-    v:
-    builtins.isPath v || (builtins.isAttrs v && v ? outPath);
-  # The [system_prompt] text (the parameter resolution above).
-  systemPromptText =
-    if systemPrompt == null then
-      builtins.readFile ../system-prompt.txt
-    else if isFileSource systemPrompt then
-      builtins.readFile systemPrompt
-    else
-      systemPrompt;
-  # The [paths] tool entries (the toolPaths argument above).
-  toolPathAttrs =
-    if toolPaths == null then
-      { native_tool_paths = map (n: "tools/${n}") tools; }
-    else
-      {
-        native_tool_paths = toolPaths.native;
-        extension_tool_paths = toolPaths.ext;
-      };
-in
-{
-  version = "0.1";
-
-  # The [tools] enabled list of the generated tools.manifest.
-  tools = tools;
-
-  # The ext packages bundled into the package: tools/,
-  # ui_extensions/, hooks/. Declared once in the exts table
-  # (config/exts.nix).
-  external_tools = extsForSystem.extTools;
-  external_ui_extensions = extsForSystem.extUi;
-  # ui_extension_names is left unset on purpose: the kernel
-  # (rushi#13) fills the manifest [ui_extensions] list at eval
-  # time from each producer's meta.rushi.ext. The kernel's
-  # drift guard still verifies each name has a bundled entry
-  # dir.
-  external_hooks = extsForSystem.extHooks;
-
-  # The TUI binary package, shipped into the package bin/ dir.
-  tui = tuiPkg;
+  rushi.tools = nativeToolNames;
 
   # The generated config.toml content. The sections mirror
   # config-real.toml from the kernel checkout.
-  config = {
+  rushi.config = {
     # [active]
     active = {
       model = "Qwen3.8-27B-NVFP4-RTX5090-DFlash2";
@@ -117,7 +70,9 @@ in
     };
 
     # [paths]
-    paths = toolPathAttrs // {
+    paths = {
+      native_tool_paths = toolPaths.native;
+      extension_tool_paths = toolPaths.ext;
       sessions_root = "sessions";
     };
 
@@ -131,9 +86,9 @@ in
       command = "rushi";
     };
 
-    # [system_prompt]
+    # [system_prompt] (the repo's built-in prompt file)
     system_prompt = {
-      text = systemPromptText;
+      text = builtins.readFile ../system-prompt.txt;
     };
 
     # [tui]

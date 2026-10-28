@@ -192,24 +192,23 @@
       # false) picks the config-side instantiation. The default
       # build keeps the optional terminal-browser tool off. The
       # enabled build adds the terminal-browser row to the exts
-      # table. The consumer-side value `systemPrompt` (default
-      # null) overrides the [system_prompt] text of the
-      # generated config.
-      # The consumer-side value `configOverride` (default
-      # null) recursively merges an attrset on top of the
-      # config section of the default rushi config value
-      # (lib.recursiveUpdate: the override's keys win, the
-      # rest is kept).
+      # table. The consumer-side value `modules` (default
+      # null) is the declarative config this build assembles:
+      # null is the repo's own deployment, a list is the
+      # consumer's modules (merged on top of the kernel's
+      # neutral defaults). The consumer-side value `exts`
+      # (default null) replaces the repo default exts table
+      # with a consumer ext set ({ extTools, extUi, extHooks }
+      # of ext packages).
       buildForSystem =
         {
           system,
           enableTerminalBrowser ? false,
-          systemPrompt ? null,
-          configOverride ? null,
           exts ? null,
+          modules ? null,
         }:
         import ./build.nix {
-          inherit inputs system enableTerminalBrowser systemPrompt configOverride exts;
+          inherit inputs system enableTerminalBrowser exts modules;
           # The flake inputs the build section names, stated
           # explicitly at the boundary instead of looked up
           # inside the inputs bag.
@@ -241,28 +240,34 @@
         }
       );
 
-      # The consumer-side control point for the optional tool and
-      # the system prompt. The caller passes its flags; the result
-      # is the combined rushi-full package. `enableTerminalBrowser`
-      # (default false) adds the terminal-browser tool. `systemPrompt`
-      # (default null) overrides the [system_prompt] text.
-      # `configOverride` (default null) recursively merges an
-      # attrset on top of the config section of the default
-      # rushi config value. `exts` (default null) replaces the
-      # repo default exts table with a consumer ext set.
+      # The consumer-side control point for the optional tool,
+      # the config, and the ext set. The caller passes its
+      # values; the result is the combined rushi-full package.
+      # `modules` (default [ ]) is the consumer's declarative
+      # rushi config: NixOS-style modules that set the
+      # rushi.* options (the nixvim-config/default.nix shape),
+      # merged on top of the kernel's neutral defaults. [ ] is
+      # the kernel defaults only. `exts` (default null)
+      # replaces the repo default exts table with a consumer
+      # ext set. `enableTerminalBrowser` (default false) adds
+      # the terminal-browser row to the default exts table.
       #
       # From a consuming flake:
       #   inputs."rushi-config".lib.mkRushiFull
       #     {
       #       system = system;
-      #       enableTerminalBrowser = true;
-      #       systemPrompt = ./my-prompt.txt;
-      #       configOverride = {
-      #         limits.bash_timeout_max = 300;
-      #         model.max_output_tokens = 32768;
-      #       };
+      #       modules = [ ./my-rushi-config.nix ];
       #       # exts = { extTools = [ … ]; extUi = [ … ]; extHooks = [ … ]; };
       #     }
+      #
+      # The consumer module is declarative data (it sets the
+      # rushi.* options):
+      #   { config, lib, pkgs, ... }:
+      #   {
+      #     rushi.config.model = { api = "responses"; max_output_tokens = 32768; };
+      #     rushi.config.limits = { bash_timeout_max = 300; };
+      #     rushi.config.system_prompt.text = "…";
+      #   }
       # One-shot from this repo: `nix build .#rushi-full-tb`.
       # Note: the `r` binding below is required. A tight
       # `buildForSystem { … }."rushi-full"` parses as a select on
@@ -270,33 +275,31 @@
       # quirk), so the select must go through a named binding.
       lib = {
         # The caller passes its target `system` (the flake or NixOS
-        # module's own system value). `enableTerminalBrowser` (default
-        # false) adds the optional terminal-browser tool. `systemPrompt`
-        # (default null) overrides the [system_prompt] text: null
-        # keeps the built-in system-prompt.txt, a string is inline
-        # text, and a path or text-file derivation is read as a
-        # file.
-        # `configOverride` (default null) recursively merges an
-        # attrset on top of the config section of the default rushi
-        # config value (lib.recursiveUpdate: the override's keys
-        # win, the rest is kept). null keeps the built-in defaults.
+        # module's own system value). `modules` (default [ ]) is
+        # the consumer's declarative rushi config: NixOS-style
+        # modules that set the rushi.* options (the
+        # nixvim-config/default.nix shape). They merge on top of
+        # the kernel's neutral defaults. [ ] is the kernel
+        # defaults only. No rushi-config repo config is involved
+        # in the consumer path.
         # `exts` (default null) replaces the repo default exts
         # table (config/exts.nix, from the flake's pinned ext
         # inputs) with a consumer ext set: an attrset
         # { extTools, extUi, extHooks } of ext packages. The
         # consumer pins its own ext flake inputs and passes the
         # packages, so the ext set is consumer-owned.
+        # `enableTerminalBrowser` (default false) adds the
+        # terminal-browser row to the default exts table.
         mkRushiFull =
           {
             system,
             enableTerminalBrowser ? false,
-            systemPrompt ? null,
-            configOverride ? null,
             exts ? null,
+            modules ? [ ],
           }:
           let
             r = buildForSystem {
-              inherit system enableTerminalBrowser systemPrompt configOverride exts;
+              inherit system enableTerminalBrowser exts modules;
             };
           in
           r."rushi-full";

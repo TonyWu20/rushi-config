@@ -8,19 +8,24 @@
 #                        (tui-compat.nix).
 #   3. toolPaths         the absolute store tool paths
 #                        (tool-paths.nix).
-#   4. rushiConfig       the config content
-#                        (config/rushi-config.nix, data)
-#                        with the consumer override.
 #
 # The ext table for this system (extsForSystem) is a
 # parameter: the repo default (config/exts.nix, data) or a
 # consumer ext set.
 #
-# Step 5 packages the config: lib.mkRushi (the kernel flake)
-# with the config value as the sole NixOS-style module. The
-# result carries .package (the configured kernel) and .config
-# (the rendered config.toml text, shared with the TUI
-# package).
+# The config modules (the modules parameter) are the
+# declarative data this build assembles: null is the repo's
+# own deployment (the data module config/rushi-config.nix), a
+# list is the consumer's declarative modules (the
+# nixvim-config/default.nix shape). The builder modules (exts,
+# tui) always come first, so the config modules can override
+# them.
+#
+# Step 4 packages the config: lib.mkRushi (the kernel flake)
+# with the module list. The kernel merges the result on top of
+# its neutral defaults (lib/rushi-defaults.nix). The result
+# carries .package (the configured kernel) and .config (the
+# rendered config.toml text, shared with the TUI package).
 
 {
   # The nixpkgs input (the shared system packages).
@@ -37,17 +42,13 @@
   # The repo default (config/exts.nix, data) or a consumer
   # ext set (lib.mkRushiFull `exts`).
   extsForSystem,
-  # null keeps the built-in system-prompt.txt. A string is the
-  # inline prompt text. A path or text-file derivation is read
-  # as a file.
-  systemPrompt ? null,
-  # An attrset recursively merged on top of the config
-  # section of the default rushi config value
-  # (lib.recursiveUpdate: the override's keys win, the
-  # rest is kept). It covers the [active], [model], [limits],
-  # [paths], [hooks], [loop], [system_prompt], and [tui]
-  # sections. null keeps the built-in defaults.
-  configOverride ? null,
+  # The declarative config modules for this build. null is the
+  # repo's own deployment (the config/rushi-config.nix data
+  # module). A list is the consumer's modules (the
+  # nixvim-config/default.nix shape): NixOS-style module
+  # functions that set the rushi.* options. They merge (NixOS
+  # module semantics) on top of the kernel's neutral defaults.
+  modules ? null,
 }:
 let
   pkgs = import nixpkgs {
@@ -69,34 +70,32 @@ let
     rawKernel = rushiKernel.packages.${system}.rushi;
     extToolPackages = extsForSystem.extTools;
   };
-  # 4. The config content: the defaults (top-down data,
-  # config/rushi-config.nix), plus the consumer override.
-  # The tuiPkg argument is the TUI bridge derivation.
-  rushiDefaults = import ./config/rushi-config.nix {
-    inherit extsForSystem nativeToolNames toolPaths systemPrompt;
-    tuiPkg = tuiCompat;
+  # The repo's own config data (the nixvim-config/default.nix
+  # shape): a module that sets the rushi.* options. It is used
+  # only for the repo's own deployment (modules = null).
+  repoModule = import ./config/rushi-config.nix {
+    inherit nativeToolNames toolPaths;
   };
-  # The merged config value: the defaults with configOverride
-  # recursively merged on top of the config section
-  # (lib.recursiveUpdate: the override's keys win, the rest
-  # is kept).
-  rushiConfig = rushiDefaults // {
-    config = pkgs.lib.recursiveUpdate rushiDefaults.config
-      (if configOverride == null then {} else configOverride);
+  # The ext packages: the exts table's lists, into the kernel
+  # option schema.
+  extsModule = { ... }: {
+    rushi.external_tools = extsForSystem.extTools;
+    rushi.external_ui_extensions = extsForSystem.extUi;
+    rushi.external_hooks = extsForSystem.extHooks;
   };
+  # The TUI binary: the self-wired bridge, shipped into the
+  # package bin/ dir.
+  tuiModule = { ... }: {
+    rushi.tui = tuiCompat;
+  };
+  # The config modules: the repo deployment or the consumer's.
+  configModules = if modules == null then [ repoModule ] else modules;
 in
-# 5. The kernel packages the config. The module is the
-# NixOS-style function lib.mkRushi merges. It contributes the
-# `rushi` fields; the kernel fills the rest (the manifest
-# lists, the package layout).
+# 4. The kernel packages the config: the builder modules first,
+# then the config modules (the NixOS merge: later modules
+# win). The kernel merges the result on top of its neutral
+# defaults.
 rushiKernel.lib.mkRushi {
   inherit pkgs;
-  modules = [
-    (
-      { ... }:
-      {
-        rushi = rushiConfig;
-      }
-    )
-  ];
+  modules = [ extsModule tuiModule ] ++ configModules;
 }

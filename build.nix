@@ -42,21 +42,19 @@
   # gates the default table only; a consumer ext set (the
   # `exts` parameter) decides the ext set.
   enableTerminalBrowser ? false,
-  # null keeps the built-in system-prompt.txt. A string is the
-  # inline prompt text. A path or text-file derivation is read
-  # as a file.
-  systemPrompt ? null,
   # The consumer ext set: an attrset { extTools, extUi,
   # extHooks } of ext packages for the target system. It
   # replaces the repo default exts table (config/exts.nix,
   # from the flake's pinned ext inputs). null keeps the
   # default table.
   exts ? null,
-  # An attrset recursively merged on top of the config
-  # section of the default rushi config value
-  # (lib.recursiveUpdate: the override's keys win, the
-  # rest is kept). null keeps the built-in defaults.
-  configOverride ? null,
+  # The declarative config modules for this build. null is
+  # the repo's own deployment (the config/rushi-config.nix
+  # data module). A list is the consumer's modules (the
+  # nixvim-config/default.nix shape): NixOS-style module
+  # functions that set the rushi.* options. They merge (NixOS
+  # module semantics) on top of the kernel's neutral defaults.
+  modules ? null,
 }:
 let
   # The per-system ext table: the consumer ext set or the
@@ -70,13 +68,13 @@ let
     else
     exts;
   # How the config is written: the configured kernel.
-  # The lib.mkRushi call, with the config value
-  # (config/rushi-config.nix), the system-prompt override, and
-  # the absolute store tool paths. The TUI bridge and the tool
-  # paths are pulled in by that file itself.
+  # The lib.mkRushi call with the module list: the builder
+  # modules (exts, tui), then the config modules (the repo
+  # data module or the consumer's). The TUI bridge and the
+  # tool paths are pulled in by that file itself.
   configured = import ./configured.nix {
     inherit nixpkgs fenix rushiKernel rushiTui system
-      extsForSystem systemPrompt configOverride;
+      extsForSystem modules;
   };
   # The full rushi package: the configured kernel + the
   # self-contained TUI + the headless goal seeder in one store
