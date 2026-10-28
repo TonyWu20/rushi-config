@@ -187,13 +187,15 @@ builder's `exts` parameter. Three forms:
 
 - **A list of ext flake inputs** (the `rushiExt` contract,
   the nixvim-plugins equivalent). Each ext flake exposes
-  `rushiExt.<system> = { tools; ui; hooks; }`, derived from
-  its `meta.rushi` declarations (kernel
-  `docs/reference/nix/ext-flake-authoring.md` section 4.6,
-  `lib.rushiExtBuckets`). The consumer declares the exts in
-  their own flake inputs and passes the flake inputs
-  straight. No `packages.<system>.<name>` selection, no
-  bucket routing:
+  `rushiExt.<system> = { tools; ui; hooks; }`, derived
+  inline from its own `meta.rushi` declarations (self
+  contained; kernel
+  `docs/reference/nix/ext-flake-authoring.md` section 4.6
+  for the canonical derivation and the consumer-side
+  `lib.unionRushiExt` fold). The consumer declares the
+  exts in their own flake inputs and passes the flake
+  inputs straight. No `packages.<system>.<name>`
+  selection, no bucket routing:
 
   `inputs."rushi-config".lib.mkRushiFull
     { system = system;
