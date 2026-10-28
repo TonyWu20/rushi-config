@@ -1046,39 +1046,48 @@ the ext repos adopt the contract. 3) Update the ten ext
 repos to add `rushiExt` (no local checkouts exist. It is
 one line per flake using the kernel helper).
 
-## rushiExt contract: shipped (2026-10-28)
+## rushiExt contract: shipped, self-contained (2026-10-28)
 
 **Status.** The open items from the previous entry are
-decided and built.
+decided and built, then the producer side was reversed
+the same day.
 
 1. The contract name is `rushiExt`.
 2. The raw bucket table stays as the migration shape.
-3. The ext repos adopt the contract: each ext flake takes
-   the kernel as an input (follows wiring) and exposes
-   `rushiExt.<system>` via the kernel
-   `lib.rushiExtBuckets` helper.
+3. Reversal (supersedes the kernel-input variant of item
+   3 in the previous entry): each ext flake inlines the
+   bucketing derivation. Self-contained, builtin-only.
+   An ext repo tracks only nixpkgs/fenix.
+
+**Why the reversal.** The kernel-input variant made every
+ext repo re-lock its `rushi` input on each kernel
+update. For N ext repos that is N lock-maintenance
+entries per kernel update, and the `rushiExt` derivation
+reads no kernel code.
 
 **Landed.** Kernel: `lib/ext-contract.nix`
-(`rushiExtBuckets`, `unionRushiExt`) + the flake lib
-export + `docs/reference/nix/ext-flake-authoring.md`
-section 4.6 and `nix-flake-module.md` sections 5 and 9.7
-(kernel commit 3380937). rushi-config: `exts` accepts a
-list of ext flake inputs (the flake-list form) in
-`build.nix` (commit 825f7b0). Nine ext repos expose
-`rushiExt` (one commit each).
+(`rushiExtBuckets`, `unionRushiExt`) stay as the
+consumer-side fold and the mechanism reference
+(commit 3380937; docs corrected to the self-contained
+form at ef5f771; both unpushed). rushi-config: `exts`
+accepts a list of ext flake inputs in `build.nix`
+(commit 825f7b0). Nine ext repos expose `rushiExt` with
+the inlined derivation (one commit each: c846bfa goal,
+feae03d web, 2c7bc35 no-find-grep, 88c3374 mineru,
+6a47d6d image-read, 0cdf58e statusline, c1f576a
+tui-mermaid, 3b7cef6 simple-english, 1a42d1e
+terminal-browser-agent).
 
 **Gate.** All seven prebaked store paths stay
-byte-identical (the `exts ? null` default path is
-untouched). Every ext flake's `rushiExt` evaluates to the
-expected buckets: goal-mode 3 tools + 1 ui + 5 hooks
-(the bare `rushi-goal` seeder is skipped, no
+byte-identical. Every ext flake's `rushiExt` evaluates
+to the expected buckets: goal-mode 3 tools + 1 ui + 5
+hooks (the bare `rushi-goal` seeder is skipped, no
 meta.rushi), web-access 2 tools, no-find-grep 1 hook,
 mineru-pdf 1 tool, image-read 1 tool, statusline 1 ui,
 mermaid-ext 1 ui, simple-english 1 ui + 1 hook,
 terminal-browser-agent 1 tool.
 
-**Open.** The ext repos lock the kernel from GitHub at
-0cc9849 (before the helper). After the kernel commit
-3380937 is pushed, re-lock the ext repos (`nix flake
-update rushi`) and the `rushiExt` attribute resolves
-against the locked input.
+**Open.** Push kernel 3380937 and ef5f771. Advance this
+repo's rushi lock to a commit carrying the helpers, then
+retire the inline fold in `build.nix` in favor of
+`rushiKernel.lib.unionRushiExt`.
