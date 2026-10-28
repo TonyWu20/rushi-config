@@ -237,35 +237,5 @@
       homeManagerModules = {
         rushi = rushi-kernel.homeManagerModules.rushi;
       };
-
-      # Dev shell with the combined rushi on PATH. One package (the
-      # combined kernel + TUI, the flake's `default`) puts both the
-      # `rushi` loop and the `rushi-tui` front-end on PATH from the
-      # same store object, so the pair can no longer skew. The
-      # external hook binaries live in the package's hooks/ dir, not
-      # bin/; the kernel resolves bare hook names against
-      # <exe_dir>/../hooks/, so a fresh build needs no PATH shim.
-      devShells = pkgLib.genAttrs supportedSystems (
-        system:
-        let
-          pkgs = import nixpkgs {
-            inherit system;
-            overlays = [ fenix.overlays.default ];
-          };
-          full = self.packages.${system}.default;
-        in
-        {
-          default = pkgs.mkShell {
-            packages = [ full ];
-            shellHook = ''
-              echo "Configured rushi (v${full.version}) — binaries on PATH:"
-              echo "  rushi         configured kernel (bin/ + tools/ + hooks/"
-              echo "                   config.toml + ui_extensions/ in the package)"
-              echo "  rushi-tui     self-wired TUI entry, same store object"
-              echo "Run:  rushi run <session>   |   rushi-tui"
-            '';
-          };
-        }
-      );
     };
 }
