@@ -1045,3 +1045,40 @@ activates only when a consumer passes it.
 the ext repos adopt the contract. 3) Update the ten ext
 repos to add `rushiExt` (no local checkouts exist. It is
 one line per flake using the kernel helper).
+
+## rushiExt contract: shipped (2026-10-28)
+
+**Status.** The open items from the previous entry are
+decided and built.
+
+1. The contract name is `rushiExt`.
+2. The raw bucket table stays as the migration shape.
+3. The ext repos adopt the contract: each ext flake takes
+   the kernel as an input (follows wiring) and exposes
+   `rushiExt.<system>` via the kernel
+   `lib.rushiExtBuckets` helper.
+
+**Landed.** Kernel: `lib/ext-contract.nix`
+(`rushiExtBuckets`, `unionRushiExt`) + the flake lib
+export + `docs/reference/nix/ext-flake-authoring.md`
+section 4.6 and `nix-flake-module.md` sections 5 and 9.7
+(kernel commit 3380937). rushi-config: `exts` accepts a
+list of ext flake inputs (the flake-list form) in
+`build.nix` (commit 825f7b0). Nine ext repos expose
+`rushiExt` (one commit each).
+
+**Gate.** All seven prebaked store paths stay
+byte-identical (the `exts ? null` default path is
+untouched). Every ext flake's `rushiExt` evaluates to the
+expected buckets: goal-mode 3 tools + 1 ui + 5 hooks
+(the bare `rushi-goal` seeder is skipped, no
+meta.rushi), web-access 2 tools, no-find-grep 1 hook,
+mineru-pdf 1 tool, image-read 1 tool, statusline 1 ui,
+mermaid-ext 1 ui, simple-english 1 ui + 1 hook,
+terminal-browser-agent 1 tool.
+
+**Open.** The ext repos lock the kernel from GitHub at
+0cc9849 (before the helper). After the kernel commit
+3380937 is pushed, re-lock the ext repos (`nix flake
+update rushi`) and the `rushiExt` attribute resolves
+against the locked input.
